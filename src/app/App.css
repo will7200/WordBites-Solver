@@ -1,0 +1,87 @@
+body, html, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: #282c34;
+    color: white
+}
+
+.App {
+    text-align: center;
+    height: 100%;
+}
+
+.box {
+    padding: 5px;
+}
+
+.content-box {
+    background: blue;
+}
+
+.col {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between
+}
+
+.box-shrink {
+    flex: 0 1 auto;
+    padding: 5px;
+    margin: 5px;
+}
+
+.box-grow {
+    flex: 1; /* formerly flex: 1 0 auto; */
+    padding: 5px;
+    margin: 5px;
+    min-height: 0; /* new */
+}
+
+.words-section {
+    display: flex;
+    flex-direction: column;
+    flex:0 100%;
+    border: 1px solid rgba(208, 208, 208, 0.17);
+}
+
+.creator-section {
+    border: 1px solid rgba(208, 208, 208, 0.17);
+}
+
+.grid-section {
+    border: 1px solid rgba(208, 208, 208, 0.17);
+}
+
+.grid-help {
+    width: 30%;
+}
+
+h2 {
+    font-size: 2rem;
+}
+
+@media (min-width: 1280px) {
+
+    .creator-section {
+        width: 29.5%;
+        flex-direction: column;
+    }
+
+    .grid-section {
+        width: 70%;
+        display: flex;
+    }
+
+    .box {
+        display: flex;
+        flex-direction: row;
+        padding: 5px;
+        flex-wrap: wrap;
+    }
+
+    .words-section {
+        height: 25vh;
+        max-height: 25vh;
+    }
+}

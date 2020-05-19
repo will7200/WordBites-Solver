@@ -1,0 +1,75 @@
+@import "../grid/GridDisplay";
+
+.creator-display {
+  display: flex;
+  flex-direction: column;
+}
+
+.creator-inputs {
+  display: flex;
+  flex-wrap: wrap;
+
+  label {
+    float: left;
+    margin: 8px;
+    font-size: 24px;
+  }
+  input {
+    float: left;
+    font-size: 24px;
+    max-width: 150px;
+    flex: 1;
+  }
+  @include respond-between(zero, md) {
+
+  }
+}
+
+.creator-matrix {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  margin: 8px;
+  overflow: auto;
+  color: black;
+
+}
+
+.creator-row {
+  display: flex;
+  flex: 1;
+  margin: 2px;
+  justify-content: left;
+  @include respond-between(zero, xs) {
+    font-size: 125%;
+    .creator-cell {
+      @include tileP(1.25mm / 2 * 19);
+    }
+  }
+  @include respond-between(xs, md) {
+    font-size: 150%;
+    .creator-cell {
+      @include tileP(1.50mm / 2 * 19);
+    }
+  }
+  @include respond-between(md, lg) {
+    font-size: 175%;
+    .creator-cell {
+      @include tileP(2mm / 2 * 19);
+    }
+  }
+  @include respond-above(lg) {
+    font-size: 200%;
+    .creator-cell {
+      @include tileP(2.5mm / 2 * 19);
+    }
+  }
+}
+
+.creator-cell input {
+  max-width: 50px;
+  flex: 1;
+  border-style: dashed;
+  border-width: 1px;
+  font-size: 24px;
+}

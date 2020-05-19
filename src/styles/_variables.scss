@@ -1,0 +1,15 @@
+$blue: #1890ff;
+$white: #ffffff;
+
+// Board Grid Stuff
+$grid-gap: 0px;
+$tile-base: #f5cf90;
+
+$breakpoints: (
+        zero: 0px,
+        xs: 360px,
+        sm: 600px,
+        md: 900px,
+        lg: 1280px
+);
+$breakpoint: map-get($breakpoints, sm);

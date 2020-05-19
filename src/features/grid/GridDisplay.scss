@@ -1,0 +1,98 @@
+@import "../../styles/variables.scss";
+@import "../../styles/mixins.scss";
+
+.gridCell {
+  background: red;
+  border-style: dashed;
+  border-width: 1px;
+  font-weight: bold;
+  text-align: center;
+
+  justify-content: center;
+}
+
+.gridCell:before {
+
+}
+
+@mixin tileP($size) {
+  $thin: ($size * 0.5/19);
+  $small: ($size * 0.75/19);
+  $med: $small * 1.5;
+  cursor: move;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #efece1;
+  text-align: center;
+  background-position: 600px 100px;
+  color: inherit;
+
+  font-family: 'Open Sans';
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: 1em;
+
+  background: $tile-base;
+  background-image: url('https://s3-us-west-2.amazonaws.com/s.cdpn.io/49914/veneer-birch-texture-fs8.png');
+
+  box-sizing: border-box;
+  box-shadow: 0 $med $small -1 * $thin rgba(black, 40%);
+
+  border-top-width: $small;
+  border-left-width: 1px;
+  border-right-width: 1px;
+  border-bottom-width: $med;
+
+  border-top-color: rgba(white, 45%);
+  border-left-color: rgba(white, 25%);
+
+  border-right-color: rgba(black, 15%);
+  border-bottom-color: rgba(black, 30%);
+  border-radius: $small;
+  border-style: solid;
+}
+
+.board {
+  position: relative;
+  justify-content: center;
+  display: grid;
+  grid-gap: $grid-gap;
+  color: black;
+
+  $tiles-mod: 0, 1, 2, 3, 4;
+  @each $tile-mod in $tiles-mod {
+    .empty-tile[data-mod="#{$tile-mod}"] {
+      background: adjust_hue(#487FA6, $tile-mod * 5);
+      border: 1.5px dashed white;
+      position: relative;
+      display: flex;
+    }
+  }
+
+  @include respond-between(zero, xs) {
+    font-size: 125%;
+    .tile {
+      @include tileP(1.25mm / 2 * 19);
+    }
+  }
+  @include respond-between(xs, md) {
+    font-size: 150%;
+    .tile {
+      @include tileP(1.50mm / 2 * 19);
+    }
+  }
+  @include respond-between(md, lg) {
+    font-size: 175%;
+    .tile {
+      @include tileP(2mm / 2 * 19);
+    }
+  }
+  @include respond-above(lg) {
+    font-size: 200%;
+    .tile {
+      @include tileP(2.5mm / 2 * 19);
+    }
+  }
+}
