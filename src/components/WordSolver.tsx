@@ -116,6 +116,7 @@ export default class WordSolver extends React.Component<any, any> {
             this.worker!.postMessage([id, 'set_filter_data', type])
         }).then(r => {
             this.setState({dictionary: type})
+            this.ready = true;
         }).catch(e => {
             console.log(e)
         })
