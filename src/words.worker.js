@@ -22,7 +22,7 @@ const wordsWorker = pieces => {
     return solver.solve(pieces)
 }
 
-fetch('/bloomfilter_alot.dat').then(data => {
+fetch('bloomfilter_alot.dat').then(data => {
     return data.text();
 }).then(data => {
     bloomdata = data;
@@ -49,7 +49,7 @@ self.onmessage = async (e) => {
             return
         case "set_filter_data":
             ready_count = 0;
-            fetch(`/bloomfilter_${data}.dat`).then(data => {
+            fetch(`bloomfilter_${data}.dat`).then(data => {
                 return data.text();
             }).then(data => {
                 bloomdata = data;
