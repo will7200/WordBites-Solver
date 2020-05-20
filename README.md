@@ -10,9 +10,9 @@ over at RESEARCH.md.
 
 ## TODO
 1. UI  
-- [ ] Tile Grid
-- [ ] Character(s) Block creator
+- [X] Tile Grid
+- [X] Character(s) Block creator
 
 2. Web Worker in Rust 
-- [ ] Algorithm to Solve all possible wordsWorker
+- [X] Algorithm to Solve all possible wordsWorker
 
