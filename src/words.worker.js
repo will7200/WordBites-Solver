@@ -1,4 +1,5 @@
 import * as wordSolver from '../solver/Cargo.toml';
+import 'regenerator-runtime/runtime'
 
 let bloomdata = undefined;
 let solver = undefined;

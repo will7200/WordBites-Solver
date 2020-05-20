@@ -53,7 +53,6 @@ export const WordDisplay = ({pieces}) => {
         if (pieces.length === 0) {
             return;
         }
-        console.log(wordSolver.dictionary, wordList.current)
         if (equal(oldPieces.current, pieces) && equal(wordList.current, wordSolver.dictionary)) {
             return
         }
