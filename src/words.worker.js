@@ -1,43 +1,31 @@
 import * as wordSolver from '../solver/Cargo.toml';
-import trie from 'trie-prefix-tree';
 
 let bloomdata = undefined;
-let mytrie = trie([]);
+let solver = undefined;
+let widthG = 8;
+let heightG = 9;
 
 let ready_count = 0;
 
 function update_count() {
     ready_count += 1;
-    if (ready_count === 2) {
+    if (ready_count === 1) {
         self.postMessage({type: 'announcment', message: 'ready'})
+        solver = new wordSolver.JSSolution(widthG, heightG, 1, bloomdata)
     }
 }
 
 const wordsWorker = pieces => {
-    if ((pieces.length === 0) || (pieces === undefined)) {
+    if ((pieces.length === 0)) {
         throw Error("empty")
     }
-    const solver = new wordSolver.JSSolution(8, 9, 1, bloomdata)
-
-    const actual = solver.solve(pieces)
-    // console.log(actual.filter(x => mytrie.hasWord(x.word)).length, actual.length)
-    // return actual.filter(x => mytrie.hasWord(x.word))
-    return actual
+    return solver.solve(pieces)
 }
 
-fetch('/bloomfilter.dat').then(data => {
+fetch('/bloomfilter_alot.dat').then(data => {
     return data.text();
 }).then(data => {
     bloomdata = data;
-    update_count();
-}).catch(err => {
-    console.log(err)
-})
-fetch('/words_alpha.txt').then(data => {
-    return data.text();
-}).then(data => {
-    let d = data.split("\r\n")
-    d.forEach(x => mytrie.addWord(x))
     update_count();
 }).catch(err => {
     console.log(err)
@@ -50,6 +38,27 @@ self.onmessage = async (e) => {
     let method = message[1];
     let data = message[2];
     switch (method) {
+        case "set_board_size":
+            const {width, height} = data;
+            widthG = width;
+            heightG = height;
+            if (bloomdata) {
+                solver = new wordSolver.JSSolution(widthG, heightG, 1, bloomdata)
+                self.postMessage({type: 'announcment', message: 'ready'})
+            }
+            return
+        case "set_filter_data":
+            ready_count = 0;
+            fetch(`/bloomfilter_${data}.dat`).then(data => {
+                return data.text();
+            }).then(data => {
+                bloomdata = data;
+                solver = new wordSolver.JSSolution(widthG, heightG, 1, bloomdata)
+                self.postMessage({type: 'result', data: 'done', id});
+            }).catch(err => {
+                console.log(err)
+            })
+            return
         case "solve":
             r = wordsWorker
             break;

@@ -85,3 +85,9 @@ h2 {
         max-height: 25vh;
     }
 }
+
+.Dropdown-root {
+    position: relative;
+    flex: 1;
+    margin: 8px;
+}

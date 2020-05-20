@@ -2,7 +2,13 @@ import React from "react";
 import { nanoid } from "../nanoid";
 
 interface WordSolverType {
-    solve: (pieces: Array<any>) => Promise<Array<{word: string}>>
+    solve: (pieces: Array<any>) => [string, Promise<Array<{ word: string }>>];
+    set_board_size: (width: number, height: number) => Promise<any>;
+    // State is maintained in the provider
+    set_filter_data: (type: string) => void;
+    // Given an ID reject promise if present
+    terminate: (id?: string) => void;
+    dictionary: string;
 }
 
 export const WordSolverContext = new React.createContext<WordSolverType>(undefined);
@@ -13,7 +19,9 @@ const rejects: Record<string, any> = {}
 export default class WordSolver extends React.Component<any, any> {
     worker: Worker | null = null;
     ready = false;
-    state = {};
+    state = {
+        dictionary: 'alot',
+    };
 
     componentDidMount() {
         this.worker = new Worker('../words.worker.js');
@@ -55,20 +63,71 @@ export default class WordSolver extends React.Component<any, any> {
     }
 
     solve = (pieces: Array<any>) => {
-        return new Promise((resolve, reject) => {
+        const id = nanoid()
+        return [id, new Promise((resolve, reject) => {
             if (!this.check()) {
-                reject("worker not ready")
+                setTimeout(() => reject("worker not ready"), 100)
             }
-            const id = nanoid()
             resolves[id] = resolve
             rejects[id] = reject
             this.worker!.postMessage([id, 'solve', pieces])
+        })]
+    }
+
+    terminate = (id: string) => {
+        console.log('closing', id)
+        const reject = rejects[id]
+        if (reject) {
+            reject('worker terminated')
+            // purge used callbacks
+            delete resolves[id]
+            delete rejects[id]
+        }
+        if (this.worker) {
+            this.worker.terminate();
+            this.ready = false;
+        }
+        this.worker = new Worker('../words.worker.js');
+        this.worker.onmessage = this.handleMessage;
+    }
+
+    set_board_size = (width: number, height: number) => {
+        return new Promise((resolve, reject) => {
+            const id = nanoid()
+            if (!this.check()) {
+                setTimeout(() => reject("worker not ready"), 100)
+            }
+            this.ready = false;
+            resolves[id] = resolve
+            rejects[id] = reject
+            this.worker!.postMessage([id, 'set_board_size', {width, height}])
+        })
+    }
+
+    set_filter_data = (type: string) => {
+        new Promise((resolve, reject) => {
+            const id = nanoid()
+            if (!this.check()) {
+                setTimeout(() => reject("worker not ready"), 100)
+            }
+            this.ready = false;
+            resolves[id] = resolve
+            rejects[id] = reject
+            this.worker!.postMessage([id, 'set_filter_data', type])
+        }).then(r => {
+            this.setState({dictionary: type})
+        }).catch(e => {
+            console.log(e)
         })
     }
 
     render() {
         const context = {
-            solve: this.solve
+            solve: this.solve,
+            terminate: this.terminate,
+            set_board_size: this.set_board_size,
+            dictionary: this.state.dictionary,
+            set_filter_data: this.set_filter_data,
         };
         return (
             <WordSolverContext.Provider value={context}>

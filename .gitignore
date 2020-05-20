@@ -25,3 +25,5 @@ yarn-error.log*
 /trie_data.data
 .idea
 .cache
+/test_build_bloom_filter.js
+/build_bloom_filter.js

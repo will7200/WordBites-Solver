@@ -1,7 +1,7 @@
 import React from 'react';
 import clsx from 'clsx';
 import './Creator.scss'
-import { CellDraggable } from "../board/CellDraggable";
+import { TileDraggable } from "./TileDraggable";
 import { useSelector } from "react-redux";
 import { RootState } from "../../app/rootReducer";
 
@@ -16,7 +16,7 @@ export function Creator() {
         (state: RootState) => state
     )
     const setValues = (kind: 'width' | 'height') => (event: InputEvent) => {
-        if (kind == 'width') {
+        if (kind === 'width') {
             const widthSet = parseInt(event.target.value)
             if (width > widthSet) {
                 setMatrix(matrix => matrix.map(x => x.slice(0, widthSet)))
@@ -46,12 +46,14 @@ export function Creator() {
                 <div className={clsx('creator-inputs')}>
                     <label htmlFor="fwidth">Width: {width}</label>
                     <input type="range" id="fwidth" name="Width" placeholder="Width" onChange={setValues('width')}
-                           defaultValue={1} min={1} max={grid.width / 2}/>
+                           defaultValue={1} min={1}
+                           max={(height === 1) || ((height === width) && (width === 1)) ? grid.width / 2 : 1}/>
                     <label htmlFor="fheight">Height: {height}</label>
                     <input type="range" id="fheight" name="Height" placeholder="Height" onChange={setValues('height')}
-                           defaultValue={1} min={1} max={grid.height / 2}/>
+                           defaultValue={1} min={1}
+                           max={(width === 1) || ((height === width) && (width === 1)) ? grid.height / 2 : 1}/>
                 </div>
-                <CellDraggable className={clsx('creator-matrix')} value={{width, height, matrix}}
+                <TileDraggable className={clsx('creator-matrix')} value={{width, height, matrix}}
                                onDrop={() => safeSetMatrix(Array.from({length: height}, () => Array.from({length: width}, () => null)))}>
                     {
                         matrix && matrix.map((columns, index) => {
@@ -72,7 +74,7 @@ export function Creator() {
                             )
                         })
                     }
-                </CellDraggable>
+                </TileDraggable>
             </div>
         </div>
     )

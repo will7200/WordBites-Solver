@@ -4,6 +4,10 @@
 h2 {
   .time-load {
     font-size: small;
+    display: flex;
+    justify-self: flex-end;
+    align-self: flex-end;
+    margin: 4px;
   }
 }
 
@@ -143,24 +147,50 @@ h2 {
   }
 }
 
-.lds-hourglass {
-  display: inline-block;
-  position: absolute;
+.cancel-word-solver {
+  fill: currentColor;
+  cursor: pointer;
+  opacity: .7;
+  &:hover {
+    cursor: pointer;
+    opacity: 1;
+  }
+}
+
+.solve-word-solver {
+  fill: currentColor;
+  opacity: .7;
+  margin-left: 8px;
+  &:hover {
+    cursor: pointer;
+    opacity: 1;
+  }
+}
+
+.icon-container {
+  display: inline-flex;
   width: 45px;
   height: 45px;
-  transform: scale(1) translate(250%, 25%);
+  justify-content: center;
+  align-items: center;
 }
-.lds-hourglass:after {
-  content: " ";
-  display: block;
-  border-radius: 50%;
-  width: 0;
-  height: 0;
-  margin: 8px;
-  box-sizing: border-box;
-  border: 16px solid #fff;
-  border-color: #fff transparent #fff transparent;
-  animation: lds-hourglass 1.2s infinite;
+
+.lds-hourglass {
+  display: inline-block;
+  width: 45px;
+  height: 45px;
+  &:after {
+    content: " ";
+    display: block;
+    border-radius: 50%;
+    width: 0;
+    height: 0;
+    margin: 8px;
+    box-sizing: border-box;
+    border: 16px solid #fff;
+    border-color: #fff transparent #fff transparent;
+    animation: lds-hourglass 1.2s infinite;
+  }
 }
 @keyframes lds-hourglass {
   0% {

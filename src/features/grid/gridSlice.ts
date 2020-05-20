@@ -46,11 +46,12 @@ const issuesDisplaySlice = createSlice({
     name: 'grid',
     initialState,
     reducers: {
-        setGridSize(state, action: PayloadAction<GridSliceType>) {
+        setGridSize(state, action: PayloadAction<Omit<GridSliceType, 'grid'>>) {
             const {width, height} = action.payload;
             state.width = width
             state.height = height
             state.grid = new Array(height).fill(new Array(width).fill(null))
+            state.pieces = []
         },
         addPiece(state, action: PayloadAction<Omit<GridPiece, 'id'>>) {
             const {width, height, matrix, cell} = action.payload

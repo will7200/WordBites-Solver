@@ -23,9 +23,10 @@ export interface CellProps {
     y: number;
 }
 
-function Cell({x, y}: CellProps) {
+function Tile({x, y}: CellProps) {
     const ref = React.useRef<HTMLDivElement>(null);
     const [matrixDimensions, setMatrixDimensions] = React.useState({height: 0, width: 0});
+    const modNumberClass = React.useMemo(() => ((x + 1) * (y + 1) + Math.floor(Math.random() * Math.floor(5))) % 5, [x, y]);
     const {grid} = useSelector(
         (state: RootState) => state
     )
@@ -49,7 +50,7 @@ function Cell({x, y}: CellProps) {
         }),
     })
     const dispatch = useDispatch();
-    const [_, drag, preview] = useDrag({
+    const [, drag, preview] = useDrag({
         // @ts-ignore
         item: {type: ItemTypes.MATRIX},
         begin: (monitor => {
@@ -95,12 +96,11 @@ function Cell({x, y}: CellProps) {
     return (
         <>
             <div className={clsx(grid.grid[y][x] && 'tile', !grid.grid[y][x] && 'empty-tile')} data-cell={`${y}-${x}`}
-                 data-x={x} data-y={y} data-mod={((x + 1) * (y + 1) + Math.floor(Math.random() * Math.floor(5))) % 5} ref={ref} onContextMenu={handleRightClick}>
+                 data-x={x} data-y={y} data-mod={modNumberClass} ref={ref} onContextMenu={handleRightClick}>
                 {grid.grid[y][x] ?? ""}
                 {isActive &&
                 <Overlay color={"darkgreen"} width={matrixDimensions.width} height={matrixDimensions.height}/>}
             </div>
-            {/* eslint-disable-next-line react/jsx-no-undef */}
         </>
     )
 }
@@ -124,7 +124,7 @@ export function GridDisplay({height, width, size}: GridDisplayProps) {
             {
                 rows.map((val, index) => val.map(
                     (val2, index2) => (
-                        <Cell
+                        <Tile
                             x={index2}
                             y={index}
                             key={`${index}${index2}-row`}/>
