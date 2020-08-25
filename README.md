@@ -8,6 +8,8 @@ The only downside is that is quite expensive to utilize.
 So this is my go at implementing the solver from scratch. I will document all my findings
 over at RESEARCH.md.
 
+Play with it over at https://will7200.github.io/WordBites-Solver
+
 ## TODO
 1. UI  
 - [X] Tile Grid
