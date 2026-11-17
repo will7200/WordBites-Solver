@@ -7,11 +7,6 @@ updates:
   - package-ecosystem: cargo
     directory: /solver
     schedule: { interval: monthly }
-    ignore:
-      # Bloom filter .dat files depend on this exact serialization format.
-      - dependency-name: probabilistic-collections
-      - dependency-name: bincode
-        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: monthly }

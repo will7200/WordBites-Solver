@@ -8,10 +8,10 @@ import { useWordSolver } from '@/components/WordSolver'
 
 const DICTIONARIES = [
   { value: 'alot', label: 'Everything (370k words)' },
-  { value: 'enable1', label: 'ENABLE (Scrabble, verbose)' },
-  { value: 'ospd', label: "Official Scrabble Players' Dictionary" },
-  { value: 'popular', label: 'Popular words' },
-  { value: 'unix_words', label: 'Unix dictionary' },
+  { value: 'enable1', label: 'ENABLE (173k words)' },
+  { value: 'ospd', label: "Official Scrabble Players' (79k)" },
+  { value: 'popular', label: 'Popular words (25k)' },
+  { value: 'unix_words', label: 'Unix dictionary (234k)' },
 ]
 
 function Stepper({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {

@@ -4,6 +4,7 @@ import { useAppDispatch, useAppSelector } from '@/app/store'
 import { restorePieces } from '@/features/grid/gridSlice'
 import { arrangeWord, boardRuns } from '@/lib/arrange'
 import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
@@ -21,6 +22,9 @@ export function WordDisplay({ pieces }: { pieces: PieceInput[] }) {
   const [currId, setCurrId] = React.useState<string>()
   const [elapsed, setElapsed] = React.useState<number>()
   const [error, setError] = React.useState<string>()
+  const [solveProgress, setSolveProgress] = React.useState<number>()
+  // Only show the solve bar if a solve takes long enough to notice.
+  const [showBar, setShowBar] = React.useState(false)
   const [copied, setCopied] = React.useState(false)
   const [selected, setSelected] = React.useState<string>()
   const [arrangeError, setArrangeError] = React.useState<string>()
@@ -60,22 +64,35 @@ export function WordDisplay({ pieces }: { pieces: PieceInput[] }) {
         return
       }
       const start = performance.now()
-      const [id, result] = wordSolver.solve(pieces)
+      let cancelled = false
+      const [id, result] = wordSolver.solve(pieces, (p) => {
+        if (!cancelled) setSolveProgress(p.total ? p.done / p.total : 0)
+      })
       setCurrId(id)
       setError(undefined)
-      let cancelled = false
+      setSolveProgress(0)
+      setShowBar(false)
+      const barTimer = setTimeout(() => !cancelled && setShowBar(true), 150)
       result
         .then((r) => {
           if (cancelled) return
-          setWords(r.map((w) => w.word))
+          setWords(r)
           setElapsed(performance.now() - start)
         })
         .catch((e: Error) => {
           if (!cancelled && e.message !== 'worker terminated') setError(e.message)
         })
-        .finally(() => setCurrId((c) => (c === id ? undefined : c)))
+        .finally(() => {
+          clearTimeout(barTimer)
+          setCurrId((c) => (c === id ? undefined : c))
+          if (!cancelled) {
+            setSolveProgress(undefined)
+            setShowBar(false)
+          }
+        })
       return () => {
         cancelled = true
+        clearTimeout(barTimer)
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -108,6 +125,23 @@ export function WordDisplay({ pieces }: { pieces: PieceInput[] }) {
   }
 
   const busy = currId !== undefined || !wordSolver.ready
+  const loading = wordSolver.loading
+  const loadingLabel =
+    loading?.phase === 'download'
+      ? `Downloading dictionary… ${Math.round((100 * loading.done) / loading.total)}%`
+      : loading?.phase === 'build'
+        ? 'Preparing dictionary…'
+        : 'Loading…'
+  // 0–100 for the bar, or undefined to hide it.
+  const bar = !wordSolver.ready
+    ? loading?.phase === 'download'
+      ? (95 * loading.done) / loading.total
+      : loading?.phase === 'build'
+        ? 97
+        : 0
+    : showBar && solveProgress !== undefined
+      ? 100 * solveProgress
+      : undefined
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
       <div className="flex items-center gap-2">
@@ -115,10 +149,10 @@ export function WordDisplay({ pieces }: { pieces: PieceInput[] }) {
         <span className="text-sm text-muted-foreground tabular-nums">
           {busy ? (
             <span className="inline-flex items-center gap-1">
-              <Loader2 className="size-3.5 animate-spin" /> {wordSolver.ready ? 'Solving…' : 'Loading dictionary…'}
+              <Loader2 className="size-3.5 animate-spin" /> {wordSolver.ready ? 'Solving…' : loadingLabel}
             </span>
           ) : (
-            elapsed !== undefined && `${words.length} found · ${Math.round(elapsed)} ms`
+            elapsed !== undefined && `${words.length.toLocaleString()} found · ${Math.round(elapsed)} ms`
           )}
         </span>
         <div className="ml-auto">
@@ -141,6 +175,14 @@ export function WordDisplay({ pieces }: { pieces: PieceInput[] }) {
           )}
         </div>
       </div>
+
+      {bar !== undefined && (
+        <Progress
+          value={bar}
+          aria-label={wordSolver.ready ? 'Solving' : 'Loading dictionary'}
+          className="h-1.5 [&>*]:transition-none"
+        />
+      )}
 
       {(error || wordSolver.error || arrangeError) && (
         <p className="text-sm text-destructive">{error || wordSolver.error || arrangeError}</p>

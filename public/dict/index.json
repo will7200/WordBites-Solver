@@ -1,0 +1,7 @@
+{
+  "alot": { "words": 369651, "bytes": 3863480 },
+  "enable1": { "words": 172727, "bytes": 1743075 },
+  "ospd": { "words": 79245, "bytes": 614388 },
+  "popular": { "words": 25233, "bytes": 210251 },
+  "unix_words": { "words": 234204, "bytes": 2481885 }
+}

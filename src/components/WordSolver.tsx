@@ -1,15 +1,24 @@
 import React from 'react'
-import type { PieceInput, Request, Response, SolvedWord } from '../workerProtocol'
+import type { Phase, PieceInput, Request, Response } from '../workerProtocol'
 
 type Method = Request['method']
 type DataOf<M extends Method> = Extract<Request, { method: M }>['data']
 
+export interface Progress {
+  phase: Phase
+  done: number
+  total: number
+}
+
 export interface WordSolverType {
   ready: boolean
+  /** Dictionary download/build progress while not ready. */
+  loading?: Progress
+  wordCount?: number
   error?: string
   dictionary: string
   /** Returns a request id (usable with `terminate`) and the pending result. */
-  solve: (pieces: PieceInput[]) => [string, Promise<SolvedWord[]>]
+  solve: (pieces: PieceInput[], onProgress?: (p: Progress) => void) => [string, Promise<string[]>]
   setBoardSize: (width: number, height: number) => Promise<void>
   /** Dictionary lookup for each word. */
   checkWords: (words: string[]) => Promise<boolean[]>
@@ -23,6 +32,7 @@ export const WordSolverContext = React.createContext<WordSolverType | null>(null
 interface Pending {
   resolve: (v: any) => void
   reject: (e: Error) => void
+  onProgress?: (p: Progress) => void
 }
 
 const createWorker = () => new Worker(new URL('../words.worker.ts', import.meta.url), { type: 'module' })
@@ -34,6 +44,8 @@ export default function WordSolver({ children }: { children: React.ReactNode }) 
   const [ready, setReady] = React.useState(false)
   const [error, setError] = React.useState<string>()
   const [dictionary, setDictionaryState] = React.useState('alot')
+  const [loading, setLoading] = React.useState<Progress>()
+  const [wordCount, setWordCount] = React.useState<number>()
   const dictionaryRef = React.useRef(dictionary)
 
   const rejectAll = (reason: string) => {
@@ -41,11 +53,16 @@ export default function WordSolver({ children }: { children: React.ReactNode }) 
     pending.current.clear()
   }
 
-  const call = React.useCallback(<M extends Method>(method: M, data: DataOf<M>, id: string = crypto.randomUUID()) => {
+  const call = React.useCallback(<M extends Method>(
+    method: M,
+    data: DataOf<M>,
+    id: string = crypto.randomUUID(),
+    onProgress?: (p: Progress) => void,
+  ) => {
     return new Promise<any>((resolve, reject) => {
       const worker = workerRef.current
       if (!worker) return reject(new Error('worker not started'))
-      pending.current.set(id, { resolve, reject })
+      pending.current.set(id, { resolve, reject, onProgress })
       worker.postMessage({ id, method, data } as Request)
     })
   }, [])
@@ -59,9 +76,18 @@ export default function WordSolver({ children }: { children: React.ReactNode }) 
       switch (msg.type) {
         case 'ready':
           setReady(true)
+          setLoading(undefined)
+          setWordCount(msg.words)
           setError(undefined)
           return
+        case 'progress': {
+          const p = { phase: msg.phase, done: msg.done, total: msg.total }
+          if (msg.id) pending.current.get(msg.id)?.onProgress?.(p)
+          else setLoading(p)
+          return
+        }
         case 'fatal':
+          setLoading(undefined)
           setError(msg.error)
           return
         case 'result':
@@ -92,11 +118,13 @@ export default function WordSolver({ children }: { children: React.ReactNode }) 
   const value = React.useMemo<WordSolverType>(
     () => ({
       ready,
+      loading,
+      wordCount,
       error,
       dictionary,
-      solve: (pieces) => {
+      solve: (pieces, onProgress) => {
         const id = crypto.randomUUID()
-        return [id, call('solve', pieces, id)]
+        return [id, call('solve', pieces, id, onProgress)]
       },
       checkWords: (words) => (words.length ? call('check_words', words) : Promise.resolve([])),
       setBoardSize: async (width, height) => {
@@ -104,7 +132,8 @@ export default function WordSolver({ children }: { children: React.ReactNode }) 
         await call('set_board_size', { width, height })
       },
       setDictionary: async (name) => {
-        await call('set_filter_data', name)
+        setReady(false)
+        await call('set_filter_data', name).finally(() => setReady(true))
         dictionaryRef.current = name
         setDictionaryState(name)
       },
@@ -114,7 +143,7 @@ export default function WordSolver({ children }: { children: React.ReactNode }) 
         start()
       },
     }),
-    [ready, error, dictionary, call, start],
+    [ready, loading, wordCount, error, dictionary, call, start],
   )
 
   return <WordSolverContext.Provider value={value}>{children}</WordSolverContext.Provider>

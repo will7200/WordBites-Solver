@@ -6,8 +6,8 @@ lists every word you can make, longest first.
 Play with it at https://will7200.github.io/WordBites-Solver
 
 The UI is React + Redux Toolkit with shadcn/ui and Tailwind, built with Vite. Solving runs in a Web Worker in a
-Rust → WebAssembly module (`solver/`) that checks letter permutations against a bloom-filter
-dictionary. Notes on the approach are in [RESEARCH.md](RESEARCH.md).
+Rust → WebAssembly module (`solver/`) that searches a compact dictionary index, dropping any
+prefix no word starts with. Notes on the approach are in [RESEARCH.md](RESEARCH.md).
 
 ## Using it
 
@@ -40,12 +40,19 @@ Pushes to `master` are built and deployed to GitHub Pages by
 
 ### Dictionaries
 
-`public/bloomfilter_*.dat` are bloom filters (base64 of bincode-serialized
-`probabilistic-collections` 0.7 `BloomFilter<String>`). To build one from a word list:
+`public/dict/<name>.txt` are plain sorted word lists (lowercase a–z, 3+ letters);
+`public/dict/index.json` lists word and byte counts. The worker downloads one, and the Rust
+solver builds an [`fst`](https://docs.rs/fst) set from it in memory. The solver walks that
+set letter by letter, so it drops any prefix no word starts with.
+
+Sources: `alot` is [dwyl/english-words](https://github.com/dwyl/english-words) `words_alpha.txt`.
+`enable1`, `ospd`, `popular` and `unix_words` come from [dolph/dictionary](https://github.com/dolph/dictionary).
+
+To add or rebuild dictionaries:
 
 ```sh
 cd solver
-cargo run --release --bin build-filter -- words.txt ../public/bloomfilter_custom.dat
+cargo run --release --bin build-dict -- ../public/dict alot=words_alpha.txt enable1=enable1.txt ...
 ```
 
-Then add it to the dictionary options in `src/features/gridControls/GridControls.tsx`.
+Then add it to `DICTIONARIES` in `src/features/header/Header.tsx`.
