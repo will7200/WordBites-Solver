@@ -150,6 +150,9 @@
       inset 0 -3px 0 rgb(120 72 20 / 0.35),
       0 2px 6px rgb(0 0 0 / 0.35);
     user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    touch-action: none; /* let touch drags move tiles instead of scrolling */
     cursor: grab;
     transition: transform 120ms ease, box-shadow 120ms ease;
   }
@@ -206,5 +209,37 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .wb-tile.wb-glow { animation: none; }
+  }
+}
+
+/* ---- Drag and drop ---- */
+@layer components {
+  /* The piece under the pointer: slightly enlarged with a deeper shadow, as if lifted. */
+  .wb-dragging > * {
+    transform: scale(1.06) rotate(-1.5deg);
+    transform-origin: center;
+    filter: drop-shadow(0 12px 18px rgb(0 0 0 / 0.55));
+  }
+  .wb-dragging .wb-tile { cursor: grabbing; }
+  /* Where the piece came from, while it's lifted. */
+  .wb-tile.wb-lifted {
+    opacity: 0.25;
+    box-shadow: none;
+    transform: none;
+  }
+  /* Landing spot preview. */
+  .wb-ghost {
+    position: absolute;
+    z-index: 3;
+    pointer-events: none;
+    border-radius: calc(var(--cell, 48px) * 0.16);
+    background: rgb(52 211 153 / 0.18);
+    outline: 2px dashed rgb(52 211 153 / 0.9);
+    outline-offset: 1px;
+    transition: left 60ms ease-out, top 60ms ease-out;
+  }
+  .wb-ghost.wb-ghost-bad {
+    background: rgb(248 113 113 / 0.12);
+    outline-color: rgb(248 113 113 / 0.8);
   }
 }

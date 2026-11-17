@@ -1,40 +1,41 @@
-import React from 'react'
-import { useDragLayer, XYCoord } from 'react-dnd'
-import ItemTypes, { MatrixDropValues } from '../board/ItemTypes'
+import { useDragLayer } from 'react-dnd'
+import ItemTypes from '../board/ItemTypes'
 import TilePreview from './TilePreview'
 import { useAppSelector } from '../../app/store'
+import { DragItem, pieceTopLeft } from './dragGeometry'
+import { GAP } from './constants'
 
-const layerStyles: React.CSSProperties = {
-  position: 'fixed',
-  pointerEvents: 'none',
-  zIndex: 100,
-  left: 0,
-  top: 0,
-  width: '100%',
-  height: '100%',
-}
-
-function getItemStyles(initialOffset: XYCoord | null, currentOffset: XYCoord | null): React.CSSProperties {
-  if (!initialOffset || !currentOffset) return { display: 'none' }
-  const transform = `translate(${currentOffset.x}px, ${currentOffset.y}px)`
-  return { transform, WebkitTransform: transform }
-}
-
+/** Draws the lifted piece under the pointer, keeping the grabbed letter under the finger. */
 export function GridDragLayer({ size }: { size: number }) {
-  const { itemType, isDragging, item, initialOffset, currentOffset } = useDragLayer((monitor) => ({
-    item: monitor.getItem<MatrixDropValues>(),
-    itemType: monitor.getItemType(),
-    initialOffset: monitor.getInitialSourceClientOffset(),
-    currentOffset: monitor.getSourceClientOffset(),
-    isDragging: monitor.isDragging(),
+  const { item, itemType, isDragging, monitorOffsets } = useDragLayer((m) => ({
+    item: m.getItem<DragItem>(),
+    itemType: m.getItemType(),
+    isDragging: m.isDragging(),
+    monitorOffsets: {
+      initialClient: m.getInitialClientOffset(),
+      initialSource: m.getInitialSourceClientOffset(),
+      client: m.getClientOffset(),
+    },
   }))
   const pieces = useAppSelector((state) => state.grid.pieces)
-
   if (!isDragging || itemType !== ItemTypes.MATRIX || !item) return null
+  const tl = pieceTopLeft(
+    item,
+    {
+      getInitialClientOffset: () => monitorOffsets.initialClient,
+      getInitialSourceClientOffset: () => monitorOffsets.initialSource,
+      getClientOffset: () => monitorOffsets.client,
+    },
+    size + GAP,
+  )
+  if (!tl) return null
   const piece = (item.id && pieces.find((p) => p.id === item.id)) || item
   return (
-    <div style={layerStyles}>
-      <div style={getItemStyles(initialOffset, currentOffset)}>
+    <div className="pointer-events-none fixed inset-0 z-[100]">
+      <div
+        className="wb-dragging"
+        style={{ transform: `translate3d(${tl.x}px, ${tl.y}px, 0)`, width: 'max-content' }}
+      >
         <TilePreview width={piece.width} height={piece.height} matrix={piece.matrix} size={size} />
       </div>
     </div>

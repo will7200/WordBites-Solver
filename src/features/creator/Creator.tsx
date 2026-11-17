@@ -107,7 +107,7 @@ export function Creator() {
       {pieces.length > 0 && (
         <div className="flex min-h-14 flex-wrap items-start gap-3 rounded-lg border border-dashed p-3">
           {pieces.map((p, i) => (
-            <TileDraggable key={`${i}-${tokens[i]}-${orientation}`} value={p} onDrop={() => removeToken(i)}>
+            <TileDraggable key={`${i}-${tokens[i]}-${orientation}`} value={p} tileSize={36} onDrop={() => removeToken(i)}>
               <TilePreview {...p} size={36} />
             </TileDraggable>
           ))}
