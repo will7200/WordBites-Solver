@@ -2,22 +2,29 @@ import React from 'react'
 import { useAppSelector } from '@/app/store'
 import { useWordSolver } from '@/components/WordSolver'
 import { boardRuns } from '@/lib/arrange'
+import { pieceAt } from './gridSlice'
 
-/** Dictionary words currently spelled on the board (runs of 3+ letters), and their cells ("x,y"). */
+/**
+ * Dictionary words currently spelled on the board, and their cells ("x,y"). A run counts if it
+ * has 3+ letters and combines at least two pieces.
+ */
 export function useBoardWords() {
-  const grid = useAppSelector((s) => s.grid.grid)
+  const state = useAppSelector((s) => s.grid)
+  const grid = state.grid
   const solver = useWordSolver()
-  const [state, setState] = React.useState<{ words: string[]; glowing: Set<string> }>({ words: [], glowing: new Set() })
+  const [result, setResult] = React.useState<{ words: string[]; glowing: Set<string> }>({ words: [], glowing: new Set() })
   React.useEffect(() => {
     if (!solver.ready) return
-    const runs = boardRuns(grid).filter((r) => r.word.length >= 3)
+    const runs = boardRuns(grid).filter(
+      (r) => r.word.length >= 3 && new Set(r.cells.map((c) => pieceAt(state, c.x, c.y)?.id)).size >= 2,
+    )
     let live = true
     solver
       .checkWords(runs.map((r) => r.word))
       .then((ok) => {
         if (!live) return
         const valid = runs.filter((_, i) => ok[i])
-        setState({
+        setResult({
           words: valid.map((r) => r.word.toLowerCase()),
           glowing: new Set(valid.flatMap((r) => r.cells.map((c) => `${c.x},${c.y}`))),
         })
@@ -28,5 +35,5 @@ export function useBoardWords() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [grid, solver.ready, solver.dictionary])
-  return state
+  return result
 }

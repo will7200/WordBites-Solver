@@ -46,19 +46,17 @@ Pushes to `master` are built and deployed to GitHub Pages by
 
 ### Dictionaries
 
-`public/dict/<name>.txt` are plain sorted word lists (lowercase a–z, 3+ letters);
-`public/dict/index.json` lists word and byte counts. The worker downloads one, and the Rust
-solver builds an [`fst`](https://docs.rs/fst) set from it in memory. The solver walks that
-set letter by letter, so it drops any prefix no word starts with.
+Source word lists live in `dictionaries/<name>.txt` (sorted, lowercase a–z, 3+ letters).
+`npm run dict` turns each into a prebuilt [`fst`](https://docs.rs/fst) set,
+`public/dict/<name>.fst.gz`, plus `public/dict/index.json`. They're gzipped ahead of time
+because static hosts like GitHub Pages don't compress binary files. The worker downloads and
+decompresses one, and the solver uses it directly with no build step. The solver walks the set
+letter by letter, so it drops any prefix no word starts with.
+
+Words must have 3+ letters and combine at least two pieces.
 
 Sources: `alot` is [dwyl/english-words](https://github.com/dwyl/english-words) `words_alpha.txt`.
 `enable1`, `ospd`, `popular` and `unix_words` come from [dolph/dictionary](https://github.com/dolph/dictionary).
 
-To add or rebuild dictionaries:
-
-```sh
-cd solver
-cargo run --release --bin build-dict -- ../public/dict alot=words_alpha.txt enable1=enable1.txt ...
-```
-
-Then add it to `DICTIONARIES` in `src/features/header/Header.tsx`.
+To add a dictionary, put its word list in `dictionaries/`, add it to the `dict` script in
+`package.json` and to `DICTIONARIES` in `src/features/header/Header.tsx`, then run `npm run dict`.

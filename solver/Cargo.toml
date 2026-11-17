@@ -15,9 +15,12 @@ crate-type = ["cdylib", "rlib"]
 [[bin]]
 name = "build-dict"
 path = "src/bin/build_dict.rs"
+required-features = ["cli"]
 
 [features]
 default = ["console_error_panic_hook"]
+# Dictionary build tool (not part of the wasm module).
+cli = ["dep:flate2"]
 
 [dependencies]
 wasm-bindgen = "0.2"
@@ -25,6 +28,7 @@ serde = { version = "1", features = ["derive"] }
 serde-wasm-bindgen = "0.6"
 fst = "0.4"
 console_error_panic_hook = { version = "0.1.7", optional = true }
+flate2 = { version = "1", optional = true }
 
 [profile.release]
 opt-level = 3

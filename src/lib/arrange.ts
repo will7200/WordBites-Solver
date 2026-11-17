@@ -166,7 +166,7 @@ function firstFit(taken: boolean[][], p: GridPiece, width: number, height: numbe
   return undefined
 }
 
-/** Maximal runs of 2+ letters along rows and columns. */
+/** Maximal runs of 2+ letters along rows and columns (callers decide which count as words). */
 export function boardRuns(grid: Array<Array<string | null>>): { word: string; cells: Cell[] }[] {
   const runs: { word: string; cells: Cell[] }[] = []
   const h = grid.length

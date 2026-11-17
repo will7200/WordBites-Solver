@@ -4,6 +4,8 @@
 //! * single tiles and pieces running along the axis contribute all their letters, and
 //! * pieces running across the axis contribute exactly one of their letters (they cross the word).
 //!
+//! A word must use at least two pieces (a lone piece doesn't count as forming a word).
+//!
 //! The search walks the dictionary's FST letter by letter, so any prefix that starts no word is
 //! abandoned immediately.
 use std::collections::BTreeSet;
@@ -127,6 +129,7 @@ impl SolveJob {
                 along: *along as usize,
                 across: *across,
                 word: Vec::with_capacity(*along as usize),
+                used: 0,
                 found: &mut self.found,
             };
             let root = fst.root().addr();
@@ -147,6 +150,8 @@ struct Search<'a> {
     along: usize,
     across: u32,
     word: Vec<u8>,
+    /// Pieces used so far; a word must combine at least two.
+    used: usize,
     found: &'a mut BTreeSet<String>,
 }
 
@@ -176,8 +181,9 @@ impl Search<'_> {
         let len = self.word.len();
         self.word.extend_from_slice(&letters);
         self.groups[gi].count -= 1;
+        self.used += 1;
 
-        if self.word.len() >= MIN_WORD_LETTERS && self.fst.node(next).is_final() {
+        if self.used >= 2 && self.word.len() >= MIN_WORD_LETTERS && self.fst.node(next).is_final() {
             // Dictionary words are ASCII.
             self.found.insert(String::from_utf8(self.word.clone()).unwrap());
         }
@@ -191,6 +197,7 @@ impl Search<'_> {
         }
 
         self.groups[gi].count += 1;
+        self.used -= 1;
         self.word.truncate(len);
     }
 }
@@ -241,7 +248,7 @@ mod tests {
     #[test]
     fn respects_board_limits() {
         let d = dict(&["cat", "cats"]);
-        // Vertical only (1 wide): words at most 3 tall.
+        // Vertical only (1 wide): words at most 3 tall. ("ca" alone is one piece, not a word here.)
         let found = solve(&d, &[tile("ca", 1, 2), tile("t", 1, 1), tile("s", 1, 1)], 1, 3);
         assert_eq!(found, vec!["cat"]);
         // A crossing piece must fit across: tall "xc" crossing at c needs a row with one cell above.
@@ -251,10 +258,18 @@ mod tests {
     }
 
     #[test]
+    fn a_single_piece_is_not_a_word() {
+        // A long custom piece that is itself a word doesn't count on its own.
+        let d = dict(&["race", "races"]);
+        let found = solve(&d, &[tile("race", 4, 1), tile("s", 1, 1)], 8, 9);
+        assert_eq!(found, vec!["races"]);
+    }
+
+    #[test]
     fn duplicate_pieces() {
-        let d = dict(&["sass", "ass"]);
+        let d = dict(&["sass", "ass", "as"]);
         let found = solve(&d, &[tile("s", 1, 1), tile("s", 1, 1), tile("a", 1, 1), tile("s", 1, 1)], 8, 9);
-        assert_eq!(found, vec!["ass", "sass"]);
+        assert_eq!(found, vec!["ass", "sass"]); // "as" too short
     }
 
     #[test]

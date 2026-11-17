@@ -12,7 +12,7 @@ let height = 9
 let dictionary = ''
 let solver: JSSolution | undefined
 const wasmReady = init()
-const index: Promise<Record<string, { words: number; bytes: number }>> = fetch(`${BASE}index.json`).then((r) => {
+const index: Promise<Record<string, { words: number; bytes: number; gzipBytes: number }>> = fetch(`${BASE}index.json`).then((r) => {
   if (!r.ok) throw new Error(`failed to load dictionary index: ${r.status}`)
   return r.json()
 })
@@ -30,28 +30,38 @@ function throttled() {
   }
 }
 
+/** Fetch a prebuilt dictionary (gzipped FST), reporting download progress. */
 async function download(name: string): Promise<Uint8Array> {
   const hit = cache.get(name)
   if (hit) return hit
   const meta = (await index)[name]
   if (!meta) throw new Error(`unknown dictionary "${name}"`)
-  const res = await fetch(`${BASE}${name}.txt`)
+  const res = await fetch(`${BASE}${name}.fst.gz`)
   if (!res.ok || !res.body) throw new Error(`failed to load dictionary "${name}": ${res.status}`)
-  // Content-Length is the compressed size, so measure against the known uncompressed size.
   const progress = throttled()
-  const out = new Uint8Array(meta.bytes)
+  const chunks: Uint8Array[] = []
   let done = 0
+  // If a server transparently decompresses, we receive the raw size instead.
+  const expected = () => (done > meta.gzipBytes ? meta.bytes : meta.gzipBytes)
   const reader = res.body.getReader()
   for (;;) {
     const { done: end, value } = await reader.read()
     if (end) break
-    if (done + value.length > out.length) throw new Error(`dictionary "${name}" is larger than expected`)
-    out.set(value, done)
+    chunks.push(value)
     done += value.length
-    progress({ type: 'progress', phase: 'download', done, total: meta.bytes })
+    progress({ type: 'progress', phase: 'download', done: Math.min(done, expected()), total: expected() })
   }
-  progress({ type: 'progress', phase: 'download', done, total: meta.bytes }, true)
-  const bytes = out.subarray(0, done)
+  progress({ type: 'progress', phase: 'download', done, total: done }, true)
+  let bytes = new Uint8Array(done)
+  let o = 0
+  for (const c of chunks) {
+    bytes.set(c, o)
+    o += c.length
+  }
+  if (bytes[0] === 0x1f && bytes[1] === 0x8b) {
+    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))
+    bytes = new Uint8Array(await new Response(stream).arrayBuffer())
+  }
   cache.set(name, bytes)
   return bytes
 }

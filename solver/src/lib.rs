@@ -17,12 +17,12 @@ pub struct JSSolution {
 
 #[wasm_bindgen]
 impl JSSolution {
-    /// `word_list` is the raw bytes of a newline separated word list.
+    /// `dictionary` is a prebuilt FST (`public/dict/<name>.fst`, written by `build-dict`).
     #[wasm_bindgen(constructor)]
-    pub fn new(board_width: u32, board_height: u32, word_list: &[u8]) -> Result<JSSolution, JsError> {
+    pub fn new(board_width: u32, board_height: u32, dictionary: &[u8]) -> Result<JSSolution, JsError> {
         #[cfg(feature = "console_error_panic_hook")]
         console_error_panic_hook::set_once();
-        let dict = Dictionary::from_word_list(word_list).map_err(|e| JsError::new(&e))?;
+        let dict = Dictionary::from_fst(dictionary).map_err(|e| JsError::new(&e))?;
         Ok(JSSolution { dict, width: board_width, height: board_height, job: None })
     }
 
