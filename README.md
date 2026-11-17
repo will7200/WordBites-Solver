@@ -20,6 +20,9 @@ prefix no word starts with. Notes on the approach are in [RESEARCH.md](RESEARCH.
 - **How it works** in the header explains the controls; it opens automatically on first visit.
 - Each word shows its GamePigeon points (3 letters = 100 … 9 letters = 2,600). Click a word,
   then **Mark played** to track your score; played words move to the bottom.
+- **Best layout** rearranges every piece to spell as many words (or points) at once as
+  possible, using a randomized search in the Rust solver. **On board** in the word list
+  shows the words the board spells right now.
 - **Share** copies a link to the current board; the board and dictionary are also remembered
   between visits.
 - **Practice** mode deals a random 8×9 board with an 80-second timer. Drag tiles to spell

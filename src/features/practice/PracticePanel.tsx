@@ -1,4 +1,4 @@
-import { Flag, Play, RotateCcw, Timer, Trophy } from 'lucide-react'
+import { Flag, Play, RotateCcw, Search, Timer, Trophy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
@@ -10,7 +10,14 @@ const clock = (ms: number) => {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 }
 
-export function PracticePanel({ game }: { game: ReturnType<typeof usePractice> }) {
+export function PracticePanel({
+  game,
+  onOpenInSolver,
+}: {
+  game: ReturnType<typeof usePractice>
+  /** Switch to the solver with this board. */
+  onOpenInSolver: () => void
+}) {
   const { status, start, end, found, score, remaining, seconds, possible, error } = game
   const recent = [...found].reverse()
   const foundSet = new Set(found.map((f) => f.word))
@@ -79,6 +86,7 @@ export function PracticePanel({ game }: { game: ReturnType<typeof usePractice> }
           )}
           <p className="mt-2 text-muted-foreground">
             All {possible.length.toLocaleString()} possible words are on the right; click one to see it on the board.
+            Open in solver to find the best layout for this board.
           </p>
         </div>
       )}
@@ -89,9 +97,14 @@ export function PracticePanel({ game }: { game: ReturnType<typeof usePractice> }
             <Flag /> End round
           </Button>
         ) : (
-          <Button onClick={start} className="flex-1 bg-amber-300 text-amber-950 hover:bg-amber-200">
-            <RotateCcw /> Play again
-          </Button>
+          <>
+            <Button onClick={start} className="flex-1 bg-amber-300 text-amber-950 hover:bg-amber-200">
+              <RotateCcw /> Play again
+            </Button>
+            <Button variant="outline" onClick={onOpenInSolver} title="Use Best layout and the word list on this board">
+              <Search /> Open in solver
+            </Button>
+          </>
         )}
       </div>
 

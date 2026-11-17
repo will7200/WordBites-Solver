@@ -1,5 +1,5 @@
 import React from 'react'
-import type { Phase, PieceInput, Request, Response } from '../workerProtocol'
+import type { LayoutObjective, LayoutResult, Phase, PieceInput, Request, Response } from '../workerProtocol'
 
 type Method = Request['method']
 type DataOf<M extends Method> = Extract<Request, { method: M }>['data']
@@ -20,6 +20,12 @@ export interface WordSolverType {
   /** Returns a request id (usable with `terminate`) and the pending result. */
   solve: (pieces: PieceInput[], onProgress?: (p: Progress) => void) => [string, Promise<string[]>]
   setBoardSize: (width: number, height: number) => Promise<void>
+  /** Search for the arrangement of `pieces` spelling the most words or points at once. */
+  bestLayout: (
+    pieces: PieceInput[],
+    objective: LayoutObjective,
+    onProgress?: (p: Progress) => void,
+  ) => [string, Promise<LayoutResult>]
   /** Dictionary lookup for each word. */
   checkWords: (words: string[]) => Promise<boolean[]>
   setDictionary: (name: string) => Promise<void>
@@ -139,6 +145,10 @@ export default function WordSolver({ children, width, height }: { children: Reac
       solve: (pieces, onProgress) => {
         const id = crypto.randomUUID()
         return [id, call('solve', pieces, id, onProgress)]
+      },
+      bestLayout: (pieces, objective, onProgress) => {
+        const id = crypto.randomUUID()
+        return [id, call('best_layout', { pieces, objective }, id, onProgress)]
       },
       checkWords: (words) => (words.length ? call('check_words', words) : Promise.resolve([])),
       setBoardSize: async (width, height) => {

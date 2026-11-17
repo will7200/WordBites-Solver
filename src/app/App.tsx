@@ -34,7 +34,8 @@ function Workspace() {
   const boardWords = useBoardWords()
   const game = usePractice(boardWords.words)
 
-  const setMode = (next: Mode) => {
+  /** `keepBoard`: leave practice with the practice board instead of restoring the solver board. */
+  const setMode = (next: Mode, { keepBoard = false } = {}) => {
     if (next === mode) return
     if (next === 'practice') {
       // Keep the solver board aside and switch to the standard game board.
@@ -45,7 +46,7 @@ function Workspace() {
     } else {
       game.end()
       const saved = solverBoard.current
-      if (saved) {
+      if (saved && !keepBoard) {
         dispatch(setGridSize({ width: saved.width, height: saved.height }))
         dispatch(restorePieces(boardFromSaved(saved).pieces))
       }
@@ -80,7 +81,7 @@ function Workspace() {
               {practice ? 'A timed round on a random board.' : 'Type the pieces from your game.'}
             </CardDescription>
           </CardHeader>
-          <CardContent>{practice ? <PracticePanel game={game} /> : <Creator />}</CardContent>
+          <CardContent>{practice ? <PracticePanel game={game} onOpenInSolver={() => setMode('solve', { keepBoard: true })} /> : <Creator />}</CardContent>
         </Card>
 
         <Card className="lg:min-h-0">
@@ -128,6 +129,7 @@ function Workspace() {
                   : undefined
               }
               playedWords={practice ? foundSet : undefined}
+              boardWords={boardWords.words}
             />
           </CardContent>
         </Card>

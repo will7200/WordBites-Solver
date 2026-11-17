@@ -12,14 +12,19 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { cn } from '@/lib/utils'
 import { useWordSolver } from '@/components/WordSolver'
 import type { PieceInput } from '@/workerProtocol'
-import { ALL, groupWords, LETTERS, SortOrder } from './groupWords'
+import { ALL, groupWords, LETTERS, SortOrder, sortWords } from './groupWords'
+
+const ON_BOARD = 'ON_BOARD'
 
 export function WordDisplay({
   pieces,
   hidden,
   playedWords,
+  boardWords = [],
 }: {
   pieces: PieceInput[]
+  /** Words currently spelled on the board (for the "On board" filter). */
+  boardWords?: string[]
   /** Hide the list (practice round in progress) while still solving in the background. */
   hidden?: string
   /** Externally controlled set of played words (practice results). */
@@ -124,9 +129,10 @@ export function WordDisplay({
 
   const groups = React.useMemo(() => groupWords(words, sortOrder), [words, sortOrder])
   const q = query.trim().toLowerCase()
+  const boardSorted = React.useMemo(() => sortWords([...new Set(boardWords)], sortOrder), [boardWords, sortOrder])
   const matches = React.useMemo(
-    () => (groups[letter] ?? []).filter((w) => !q || w.includes(q)),
-    [groups, letter, q],
+    () => (letter === ON_BOARD ? boardSorted : (groups[letter] ?? [])).filter((w) => !q || w.includes(q)),
+    [groups, letter, q, boardSorted],
   )
   const shown = React.useMemo(() => matches.filter((w) => !played.has(w)), [matches, played])
   const playedShown = React.useMemo(() => matches.filter((w) => played.has(w)), [matches, played])
@@ -281,8 +287,9 @@ export function WordDisplay({
       </div>
 
       <div className="flex flex-wrap gap-1" role="tablist" aria-label="First letter">
-        {[ALL, ...LETTERS].map((l) => {
-          const count = groups[l].length
+        {[ON_BOARD, ALL, ...LETTERS].map((l) => {
+          const count = l === ON_BOARD ? boardSorted.length : groups[l].length
+          if (l === ON_BOARD && count === 0 && letter !== ON_BOARD) return null
           if (l !== ALL && count === 0) return null
           return (
             <button
@@ -295,7 +302,7 @@ export function WordDisplay({
                 letter === l ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground',
               )}
             >
-              {l === ALL ? 'All' : l}
+              {l === ALL ? 'All' : l === ON_BOARD ? 'On board' : l}
               <span className="tabular-nums opacity-60">{count}</span>
             </button>
           )

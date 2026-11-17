@@ -27,6 +27,11 @@ const STEPS = [
     title: 'Remove a piece',
     body: 'Hover it and click the × in its corner, or double-click / right-click it. On a phone the × is always shown.',
   },
+  {
+    icon: Sparkles,
+    title: 'Best layout',
+    body: 'Rearranges all your pieces to spell the most words (or points) at the same time. "On board" in the word list shows what the board spells right now.',
+  },
   { icon: RotateCcw, title: 'Start over', body: 'Reset board clears every piece. You can undo it right after.' },
   {
     icon: MousePointerClick,
