@@ -1,0 +1,7 @@
+{
+  "alot": { "words": 369651, "bytes": 1648603, "gzipBytes": 1155398 },
+  "enable1": { "words": 172727, "bytes": 503526, "gzipBytes": 347994 },
+  "ospd": { "words": 79245, "bytes": 246844, "gzipBytes": 169923 },
+  "popular": { "words": 25233, "bytes": 99462, "gzipBytes": 71699 },
+  "unix_words": { "words": 234204, "bytes": 1197732, "gzipBytes": 846689 }
+}
