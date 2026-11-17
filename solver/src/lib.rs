@@ -86,7 +86,7 @@ impl JSSolution {
         let tiles: Vec<Tile> = serde_wasm_bindgen::from_value(tiles)?;
         let objective = if objective == 1 { Objective::Points } else { Objective::Words };
         let start: Option<Vec<(usize, usize)>> =
-            start.map(|v| v.chunks_exact(2).map(|c| (c[0] as usize, c[1] as usize)).collect());
+            start.map(|v| v.as_chunks::<2>().0.iter().map(|[x, y]| (*x as usize, *y as usize)).collect());
         let job = LayoutJob::with_start(
             &self.dict,
             &tiles,
