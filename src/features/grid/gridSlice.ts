@@ -36,9 +36,6 @@ export function canDropIntoCell(gridState: GridState, mdv: MatrixDropValues, dro
     if (countNulls2d(mdv.matrix) > 0) {
         return false
     }
-    if ((mdv.height > (gridState.height / 2)) || (mdv.width > (gridState.width / 2))) {
-        return false
-    }
     if (((dropTarget.cell.x + mdv.width) > (gridState.width)) || ((dropTarget.cell.y + mdv.height) > (gridState.height))) {
         return false
     }
@@ -49,6 +46,18 @@ export function canDropIntoCell(gridState: GridState, mdv: MatrixDropValues, dro
         return false
     }
     return true
+}
+
+/** First top-left cell (row-major) where the piece fits, if any. */
+export function findFreeCell(gridState: GridState, mdv: MatrixDropValues): Cell | undefined {
+    for (let y = 0; y < gridState.height; y++) {
+        for (let x = 0; x < gridState.width; x++) {
+            if (canDropIntoCell(gridState, mdv, {cell: {x, y}})) {
+                return {x, y}
+            }
+        }
+    }
+    return undefined
 }
 
 const issuesDisplaySlice = createSlice({
@@ -92,6 +101,20 @@ const issuesDisplaySlice = createSlice({
             }
             piece.cell = toCell;
         },
+        /** Restore a previous set of pieces (used for undo). */
+        restorePieces(state, action: PayloadAction<GridPiece[]>) {
+            state.grid = emptyGrid(state.width, state.height)
+            state.pieces = []
+            for (const p of action.payload) {
+                if (p.cell.x + p.width > state.width || p.cell.y + p.height > state.height) continue
+                for (let y = 0; y < p.height; y++) for (let x = 0; x < p.width; x++) state.grid[p.cell.y + y][p.cell.x + x] = p.matrix[y][x]
+                state.pieces.push(p)
+            }
+        },
+        clearBoard(state) {
+            state.grid = emptyGrid(state.width, state.height)
+            state.pieces = []
+        },
         removePiece(state, action: PayloadAction<Pick<GridPiece, 'id'>>) {
             const piece = state.pieces.find(x => x.id === action.payload.id)
             if (!piece) {
@@ -113,7 +136,9 @@ export const {
     setGridSize,
     addPiece,
     movePiece,
-    removePiece
+    removePiece,
+    clearBoard,
+    restorePieces
 } = issuesDisplaySlice.actions
 
 export default issuesDisplaySlice.reducer

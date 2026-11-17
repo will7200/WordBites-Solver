@@ -1,7 +1,12 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2023", "DOM", "DOM.Iterable", "WebWorker"],
+    "lib": [
+      "ES2023",
+      "DOM",
+      "DOM.Iterable",
+      "WebWorker"
+    ],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
@@ -10,7 +15,18 @@
     "skipLibCheck": true,
     "isolatedModules": true,
     "noEmit": true,
-    "types": ["vite/client", "vitest/globals"]
+    "types": [
+      "vite/client",
+      "vitest/globals"
+    ],
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    }
   },
-  "include": ["src", "vite.config.ts"]
+  "include": [
+    "src",
+    "vite.config.ts"
+  ]
 }

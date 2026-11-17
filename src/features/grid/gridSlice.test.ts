@@ -25,3 +25,23 @@ test('a piece may be moved onto cells it currently occupies', () => {
   expect(canDropIntoCell(s, piece, { cell: { x: 1, y: 0 } })).toBe(true)
   expect(canDropIntoCell(s, { ...piece, id: undefined }, { cell: { x: 1, y: 0 } })).toBe(false)
 })
+
+test('findFreeCell skips occupied cells', async () => {
+  const { findFreeCell } = await import('./gridSlice')
+  const s = reducer(start(), addPiece({ width: 2, height: 1, matrix: [['A', 'B']], cell: { x: 0, y: 0 } }))
+  expect(findFreeCell(s, { width: 2, height: 1, matrix: [['C', 'D']] })).toEqual({ x: 2, y: 0 })
+})
+
+test('pieces longer than half the board are allowed if they fit', () => {
+  const s = start()
+  expect(canDropIntoCell(s, { width: 5, height: 1, matrix: [['R', 'A', 'C', 'E', 'R']] }, { cell: { x: 0, y: 0 } })).toBe(true)
+  expect(canDropIntoCell(s, { width: 5, height: 1, matrix: [['R', 'A', 'C', 'E', 'R']] }, { cell: { x: 4, y: 0 } })).toBe(false)
+})
+
+test('restorePieces undoes a clear', async () => {
+  const { clearBoard, restorePieces } = await import('./gridSlice')
+  const s = reducer(start(), addPiece({ width: 2, height: 1, matrix: [['A', 'B']], cell: { x: 3, y: 4 } }))
+  const cleared = reducer(s, clearBoard())
+  expect(cleared.pieces).toHaveLength(0)
+  expect(reducer(cleared, restorePieces(s.pieces))).toEqual(s)
+})

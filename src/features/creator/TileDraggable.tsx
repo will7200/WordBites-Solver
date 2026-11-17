@@ -12,21 +12,21 @@ interface Props {
   children: React.ReactNode
 }
 
+/** Wraps a not-yet-placed piece so it can be dragged onto the board. */
 export function TileDraggable({ children, className, value, onDrop }: Props) {
   const dispatch = useAppDispatch()
   const [{ isDragging }, drag, preview] = useDrag<MatrixDropValues, DropResult, { isDragging: boolean }>(
     () => ({
       type: ItemTypes.MATRIX,
-      // Snapshot the matrix so later edits don't mutate the in-flight item.
       item: () => ({ ...value, matrix: value.matrix.map((r) => [...r]) }),
       end: (item, monitor) => {
-        const dropTarget = monitor.getDropResult()
-        if (dropTarget && item) {
-          dispatch(addPiece({ height: item.height, width: item.width, matrix: item.matrix, cell: dropTarget.cell }))
+        const target = monitor.getDropResult()
+        if (target && item) {
+          dispatch(addPiece({ height: item.height, width: item.width, matrix: item.matrix, cell: target.cell }))
           onDrop?.()
         }
       },
-      collect: (monitor) => ({ isDragging: monitor.isDragging() }),
+      collect: (m) => ({ isDragging: m.isDragging() }),
     }),
     [value, onDrop],
   )
@@ -39,7 +39,7 @@ export function TileDraggable({ children, className, value, onDrop }: Props) {
       ref={(node) => {
         drag(node)
       }}
-      style={{ cursor: 'move', opacity: isDragging ? 0.5 : 1 }}
+      style={{ opacity: isDragging ? 0.4 : 1 }}
     >
       {children}
     </div>

@@ -20,7 +20,7 @@ function getItemStyles(initialOffset: XYCoord | null, currentOffset: XYCoord | n
   return { transform, WebkitTransform: transform }
 }
 
-export function GridDragLayer({ width }: { width: number }) {
+export function GridDragLayer({ size }: { size: number }) {
   const { itemType, isDragging, item, initialOffset, currentOffset } = useDragLayer((monitor) => ({
     item: monitor.getItem<MatrixDropValues>(),
     itemType: monitor.getItemType(),
@@ -35,7 +35,7 @@ export function GridDragLayer({ width }: { width: number }) {
   return (
     <div style={layerStyles}>
       <div style={getItemStyles(initialOffset, currentOffset)}>
-        <TilePreview width={piece.width} height={piece.height} matrix={piece.matrix} tileWidth={width} />
+        <TilePreview width={piece.width} height={piece.height} matrix={piece.matrix} size={size} />
       </div>
     </div>
   )

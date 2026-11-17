@@ -5,17 +5,21 @@ lists every word you can make, longest first.
 
 Play with it at https://will7200.github.io/WordBites-Solver
 
-The UI is React + Redux Toolkit, built with Vite. Solving runs in a Web Worker in a
+The UI is React + Redux Toolkit with shadcn/ui and Tailwind, built with Vite. Solving runs in a Web Worker in a
 Rust → WebAssembly module (`solver/`) that checks letter permutations against a bloom-filter
 dictionary. Notes on the approach are in [RESEARCH.md](RESEARCH.md).
 
 ## Using it
 
-- Set the board size and the dictionary under **Grid Controls**.
-- In **Creator**, choose the piece size, type its letters, and drag it onto the grid.
-  Right-click a tile on the grid to remove it.
-- Words are listed under **Words**. Sort them **Longest first** or **A → Z**, and filter
-  by first letter or show **All**. Drag the bottom edge of the panel to make it taller.
+- Pick a dictionary and board size in the header.
+- Under **Add pieces**, type your pieces separated by spaces (e.g. `r a c er ni`), choose
+  whether multi-letter pieces go **Across** or **Down**, and press Enter. They're placed on
+  the board automatically; you can also drag a piece from the tray to a specific spot.
+- Drag tiles on the board to move them. To remove one, hover it and click the red ×, or
+  double-click it. **Reset board** clears everything (with undo).
+- **How it works** in the header explains the controls; it opens automatically on first visit.
+- Words update automatically, longest first. Filter by text or first letter, or switch to
+  A–Z. Click a word to copy it.
 
 ## Development
 

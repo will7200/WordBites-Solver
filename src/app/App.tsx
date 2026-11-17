@@ -1,59 +1,70 @@
-import React from 'react';
-import './App.css';
+import React from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { TooltipProvider } from '@/components/ui/tooltip'
+import WordSolver from '@/components/WordSolver'
+import { Creator } from '@/features/creator/Creator'
+import { GridDisplay } from '@/features/grid/GridDisplay'
+import { BoardToolbar } from '@/features/grid/BoardToolbar'
+import { Header } from '@/features/header/Header'
+import { WordDisplay } from '@/features/wordlist/WordDisplay'
 import { useAppSelector } from './store'
-import { GridDisplay } from "../features/grid/GridDisplay";
-import clsx from "clsx";
-import { Creator } from "../features/creator/Creator";
-import { WordDisplay } from "../features/wordlist/WordDisplay";
-import { useDimensions } from "../components/hooks/useDimensions";
-import WordSolver from "../components/WordSolver";
-import GridControls from '../features/gridControls/GridControls';
 
-
-function App() {
-    const dimensions = useDimensions();
-    const {width, height, pieces} = useAppSelector((state) => state.grid)
-    const solverPieces = React.useMemo(() => pieces.map(x => ({
-        letters: x.matrix.flat().join("").toLowerCase(),
+export default function App() {
+  const { width, height, pieces } = useAppSelector((state) => state.grid)
+  const solverPieces = React.useMemo(
+    () =>
+      pieces.map((x) => ({
+        letters: x.matrix.flat().join('').toLowerCase(),
         height: x.height,
-        width: x.width
-    })), [pieces])
-    const size = Math.min(Math.round(Math.min(dimensions.width * .7 / width, dimensions.height * .7 / height)), 100)
-    return (
-        <WordSolver>
-            <div className={clsx("box", "col")}>
-                <section className={clsx('grid-section')}>
-                    <div className={"grid-help"}>
-                        <h2 style={{margin: '8px'}}>Grid
-                        </h2>
-                        <ul>
-                            <li>Right Clicking will Delete A Tile</li>
-                            <li>Dragging around tile has no effect on what words are possible.
-                                <ul>
-                                    <li>Eventually you will see available words per game state.</li>
-                                    <li>And also clicking on a word will show a possible formation</li>
-                                </ul>
-                            </li>
-                            <li>Currently, A Piece has to be a length of 1 in either the x or y axis</li>
-                        </ul>
+        width: x.width,
+      })),
+    [pieces],
+  )
 
-                    </div>
-                    <div className={clsx("box-grow")} id={"game-board"}>
-                        <GridDisplay height={height} width={width} size={size}/>
-                    </div>
-                </section>
-                <section className={clsx('creator-section')}>
-                    <h2 style={{margin: '8px'}}>Grid Controls</h2>
-                    <GridControls/>
-                    <h2 style={{margin: '8px'}}>Creator</h2>
-                    <Creator/>
-                </section>
-                <section className={clsx('words-section')}>
-                    <WordDisplay pieces={solverPieces}/>
-                </section>
-            </div>
-        </WordSolver>
-    );
+  return (
+    <WordSolver>
+      <TooltipProvider delayDuration={300}>
+        <div className="flex min-h-svh flex-col lg:h-svh">
+          <Header />
+          <main className="mx-auto grid w-full max-w-[1600px] flex-1 gap-4 p-4 lg:min-h-0 lg:grid-cols-[320px_minmax(0,1fr)_380px]">
+            <Card className="lg:min-h-0">
+              <CardHeader>
+                <CardTitle>Add pieces</CardTitle>
+                <CardDescription>Type the pieces from your game.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Creator />
+              </CardContent>
+            </Card>
+
+            <Card className="lg:min-h-0">
+              <CardContent className="flex h-full min-h-0 flex-col gap-3">
+                <BoardToolbar />
+                <div
+                  className="aspect-(--board-ratio) min-h-0 lg:aspect-auto lg:flex-1"
+                  style={{ '--board-ratio': `${width} / ${height}` } as React.CSSProperties}
+                >
+                  <GridDisplay width={width} height={height} />
+                </div>
+                <p className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-center text-xs text-muted-foreground">
+                  <span>
+                    <b className="font-medium text-foreground">Drag</b> a piece to move it
+                  </span>
+                  <span>
+                    <b className="font-medium text-foreground">×</b> or <b className="font-medium text-foreground">double-click</b> to remove
+                  </span>
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="h-[70vh] lg:h-auto lg:min-h-0">
+              <CardContent className="h-full min-h-0">
+                <WordDisplay pieces={solverPieces} />
+              </CardContent>
+            </Card>
+          </main>
+        </div>
+      </TooltipProvider>
+    </WordSolver>
+  )
 }
-
-export default App;

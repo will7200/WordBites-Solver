@@ -1,82 +1,118 @@
 import React from 'react'
-import clsx from 'clsx'
-import './Creator.scss'
+import { ArrowDown, ArrowRight, Plus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { Kbd } from '@/components/ui/kbd'
+import { useAppDispatch, useAppSelector } from '@/app/store'
+import { addPiece, findFreeCell, GridState } from '@/features/grid/gridSlice'
+import { Orientation, parsePieces } from '@/lib/pieces'
+import TilePreview from '@/features/grid/TilePreview'
 import { TileDraggable } from './TileDraggable'
-import { useAppSelector } from '../../app/store'
+import type { MatrixDropValues } from '@/features/board/ItemTypes'
 
-type InputEvent = React.ChangeEvent<HTMLInputElement>
-type Matrix = Array<Array<string | null>>
-
-const emptyMatrix = (width: number, height: number): Matrix =>
-  Array.from({ length: height }, () => Array<string | null>(width).fill(null))
+function tooBig(grid: GridState, p: MatrixDropValues) {
+  return p.width > grid.width || p.height > grid.height
+}
 
 export function Creator() {
-  const [width, setWidth] = React.useState(1)
-  const [height, setHeight] = React.useState(1)
-  const [matrix, setMatrix] = React.useState<Matrix>(() => emptyMatrix(1, 1))
-  const grid = useAppSelector((state) => state.grid)
+  const dispatch = useAppDispatch()
+  const grid = useAppSelector((s) => s.grid)
+  const [text, setText] = React.useState('')
+  const [orientation, setOrientation] = React.useState<Orientation>('horizontal')
+  const [message, setMessage] = React.useState<string>()
 
-  const resize = (w: number, h: number) => {
-    setMatrix((m) => Array.from({ length: h }, (_, y) => Array.from({ length: w }, (_, x) => m[y]?.[x] ?? null)))
-    setWidth(w)
-    setHeight(h)
+  const pieces = React.useMemo(() => parsePieces(text, orientation), [text, orientation])
+  const tokens = React.useMemo(() => text.trim().split(/[\s,]+/).filter((t) => /[a-z]/i.test(t)), [text])
+  const removeToken = (i: number) => setText(tokens.filter((_, j) => j !== i).join(' '))
+
+  const placeAll = () => {
+    // Place sequentially against a running copy of the grid so pieces don't collide.
+    let state = grid
+    const tooLong: string[] = []
+    const noRoom: string[] = []
+    for (const [i, p] of pieces.entries()) {
+      if (tooBig(state, p)) {
+        tooLong.push(tokens[i])
+        continue
+      }
+      const cell = findFreeCell(state, p)
+      if (!cell) {
+        noRoom.push(tokens[i])
+        continue
+      }
+      dispatch(addPiece({ ...p, cell }))
+      const g = state.grid.map((r) => [...r])
+      for (let y = 0; y < p.height; y++) for (let x = 0; x < p.width; x++) g[cell.y + y][cell.x + x] = p.matrix[y][x]
+      state = { ...state, grid: g }
+    }
+    setText([...tooLong, ...noRoom].join(' '))
+    const problems = [
+      tooLong.length &&
+        `${tooLong.map((t) => t.toUpperCase()).join(', ')} won't fit ${orientation === 'horizontal' ? `across the board (${state.width} wide)` : `down the board (${state.height} tall)`} (add spaces to split into letters)`,
+      noRoom.length && `No free space for ${noRoom.map((t) => t.toUpperCase()).join(', ')}`,
+    ].filter(Boolean)
+    setMessage(problems.length ? problems.join('. ') : undefined)
   }
-
-  const setCell = (y: number, x: number) => (event: InputEvent) => {
-    const v = event.target.value.toUpperCase().replace(/[^A-Z]/g, '')
-    setMatrix((m) => m.map((row, ry) => row.map((c, rx) => (ry === y && rx === x ? v || null : c))))
-  }
-
-  // A piece is either a single row or a single column, at most half the board.
-  const maxWidth = height === 1 ? Math.floor(grid.width / 2) : 1
-  const maxHeight = width === 1 ? Math.floor(grid.height / 2) : 1
-
-  const reset = React.useCallback(() => setMatrix(emptyMatrix(width, height)), [width, height])
-  const value = React.useMemo(() => ({ width, height, matrix }), [width, height, matrix])
 
   return (
-    <div className={clsx('creator-display')}>
-      <div className={clsx('col')} style={{ maxHeight: '100%' }}>
-        <div className={clsx('creator-inputs')}>
-          <label htmlFor="cwidth">Width: {width}</label>
-          <input
-            type="range"
-            id="cwidth"
-            value={width}
-            min={1}
-            max={maxWidth}
-            onChange={(e) => resize(parseInt(e.target.value), height)}
+    <div className="flex flex-col gap-4">
+      <form
+        className="flex flex-col gap-3"
+        onSubmit={(e) => {
+          e.preventDefault()
+          placeAll()
+        }}
+      >
+        <div className="flex gap-2">
+          <Input
+            autoFocus
+            value={text}
+            onChange={(e) => {
+              setText(e.target.value)
+              setMessage(undefined)
+            }}
+            placeholder="e.g.  r a c er ni"
+            aria-label="Pieces to add"
+            className="font-mono uppercase placeholder:normal-case"
           />
-          <label htmlFor="cheight">Height: {height}</label>
-          <input
-            type="range"
-            id="cheight"
-            value={height}
-            min={1}
-            max={maxHeight}
-            onChange={(e) => resize(width, parseInt(e.target.value))}
-          />
+          <Button type="submit" disabled={pieces.length === 0}>
+            <Plus /> Add
+          </Button>
         </div>
-        <TileDraggable className={clsx('creator-matrix')} value={value} onDrop={reset}>
-          {matrix.map((columns, y) => (
-            <div className={clsx('creator-row')} data-row={y} key={`${y}-row`}>
-              {columns.map((cell, x) => (
-                <div className={clsx('creator-cell')} data-cell={`${cell}`} key={`matrix_input-${y}-${x}`}>
-                  <input
-                    className={clsx('creator-cell')}
-                    type="text"
-                    id={`matrix_input-${y}-${x}`}
-                    aria-label={`Tile letter ${y + 1}-${x + 1}`}
-                    maxLength={1}
-                    value={cell ?? ''}
-                    onChange={setCell(y, x)}
-                  />
-                </div>
-              ))}
-            </div>
+        <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
+          <span>Multi-letter pieces</span>
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            size="sm"
+            value={orientation}
+            onValueChange={(v) => v && setOrientation(v as Orientation)}
+          >
+            <ToggleGroupItem value="horizontal" aria-label="Horizontal">
+              <ArrowRight /> Across
+            </ToggleGroupItem>
+            <ToggleGroupItem value="vertical" aria-label="Vertical">
+              <ArrowDown /> Down
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Separate pieces with spaces, then press <Kbd>Enter</Kbd> to drop them on the board, or drag one below onto
+          a spot.
+        </p>
+        {message && <p className="text-sm text-destructive">{message}</p>}
+      </form>
+
+      {pieces.length > 0 && (
+        <div className="flex min-h-14 flex-wrap items-start gap-3 rounded-lg border border-dashed p-3">
+          {pieces.map((p, i) => (
+            <TileDraggable key={`${i}-${tokens[i]}-${orientation}`} value={p} onDrop={() => removeToken(i)}>
+              <TilePreview {...p} size={36} />
+            </TileDraggable>
           ))}
-        </TileDraggable>
-      </div>
+        </div>
+      )}
     </div>
   )
 }
