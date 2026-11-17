@@ -89,6 +89,10 @@ impl WordBitesSolution {
         }
     }
 
+    pub fn contains(&self, word: &String) -> bool {
+        self.bf.contains(word)
+    }
+
     pub fn solve(&self, tiles: &[Tile]) -> Vec<WordSolution> {
         let tiles: Vec<Tile> = tiles
             .iter()
@@ -119,6 +123,17 @@ impl JSSolution {
         Ok(JSSolution {
             sol: WordBitesSolution::new((board_width as usize, board_height as usize), min_length as usize, filter),
         })
+    }
+
+    /// Whether each word is in the dictionary (3+ letters only).
+    pub fn contains_all(&self, words: Vec<String>) -> Vec<u8> {
+        words
+            .iter()
+            .map(|w| {
+                let w = w.to_lowercase();
+                (w.len() >= MIN_WORD_LETTERS && self.sol.contains(&w)) as u8
+            })
+            .collect()
     }
 
     pub fn solve(&self, tiles: JsValue) -> Result<JsValue, JsError> {

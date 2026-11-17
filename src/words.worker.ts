@@ -44,6 +44,11 @@ self.onmessage = (e: MessageEvent<Request>) => {
           await loadFilter(req.data)
           await rebuild()
           return post({ type: 'result', id: req.id, data: null })
+        case 'check_words': {
+          if (!solver) throw new Error('solver not ready')
+          const data = Array.from(solver.contains_all(req.data), Boolean)
+          return post({ type: 'result', id: req.id, data })
+        }
         case 'solve': {
           if (!solver) throw new Error('solver not ready')
           const data = solver.solve(req.data) as SolvedWord[]

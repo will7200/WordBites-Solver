@@ -19,7 +19,7 @@ dictionary. Notes on the approach are in [RESEARCH.md](RESEARCH.md).
   double-click it. **Reset board** clears everything (with undo).
 - **How it works** in the header explains the controls; it opens automatically on first visit.
 - Words update automatically, longest first. Filter by text or first letter, or switch to
-  A–Z. Click a word to copy it.
+  A–Z. Click a word and the board rearranges to spell it; any valid word on the board glows.
 
 ## Development
 

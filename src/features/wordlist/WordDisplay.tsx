@@ -1,5 +1,8 @@
 import React from 'react'
-import { Loader2, Play, Search, Square } from 'lucide-react'
+import { Check, Copy, LayoutGrid, Loader2, Play, Search, Square } from 'lucide-react'
+import { useAppDispatch, useAppSelector } from '@/app/store'
+import { restorePieces } from '@/features/grid/gridSlice'
+import { arrangeWord, boardRuns } from '@/lib/arrange'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -18,7 +21,31 @@ export function WordDisplay({ pieces }: { pieces: PieceInput[] }) {
   const [currId, setCurrId] = React.useState<string>()
   const [elapsed, setElapsed] = React.useState<number>()
   const [error, setError] = React.useState<string>()
-  const [copied, setCopied] = React.useState<string>()
+  const [copied, setCopied] = React.useState(false)
+  const [selected, setSelected] = React.useState<string>()
+  const [arrangeError, setArrangeError] = React.useState<string>()
+  const dispatch = useAppDispatch()
+  const grid = useAppSelector((s) => s.grid)
+  // A selected word stays selected while it's still spelled out on the board.
+  const onBoard = React.useMemo(
+    () => new Set(boardRuns(grid.grid).map((r) => r.word.toLowerCase())),
+    [grid.grid],
+  )
+  React.useEffect(() => {
+    if (selected && !onBoard.has(selected)) setSelected(undefined)
+  }, [onBoard, selected])
+
+  const arrange = (w: string) => {
+    const a = arrangeWord(w, grid.pieces, grid.width, grid.height)
+    if (!a) {
+      setArrangeError(`Couldn't lay out “${w}” on this board.`)
+      return
+    }
+    setArrangeError(undefined)
+    dispatch(restorePieces(a.pieces))
+    setSelected(w)
+    setCopied(false)
+  }
   // Pieces the user cancelled a solve for; don't auto-restart on them when the worker comes back.
   const cancelledFor = React.useRef<PieceInput[]>(undefined)
 
@@ -76,8 +103,8 @@ export function WordDisplay({ pieces }: { pieces: PieceInput[] }) {
 
   const copy = (w: string) => {
     navigator.clipboard?.writeText(w).catch(() => {})
-    setCopied(w)
-    setTimeout(() => setCopied((c) => (c === w ? undefined : c)), 1200)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1200)
   }
 
   const busy = currId !== undefined || !wordSolver.ready
@@ -115,7 +142,25 @@ export function WordDisplay({ pieces }: { pieces: PieceInput[] }) {
         </div>
       </div>
 
-      {(error || wordSolver.error) && <p className="text-sm text-destructive">{error || wordSolver.error}</p>}
+      {(error || wordSolver.error || arrangeError) && (
+        <p className="text-sm text-destructive">{error || wordSolver.error || arrangeError}</p>
+      )}
+
+      {selected ? (
+        <div className="flex items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm">
+          <LayoutGrid className="size-4 text-emerald-400" />
+          <span>
+            Showing <b className="font-mono">{selected}</b> on the board
+          </span>
+          <Button size="xs" variant="ghost" className="ml-auto" onClick={() => copy(selected)}>
+            {copied ? <Check /> : <Copy />} {copied ? 'Copied' : 'Copy'}
+          </Button>
+        </div>
+      ) : (
+        words.length > 0 && (
+          <p className="text-xs text-muted-foreground">Click a word to arrange the board for it. Valid words on the board glow.</p>
+        )
+      )}
 
       <div className="flex gap-2">
         <div className="relative flex-1">
@@ -174,14 +219,15 @@ export function WordDisplay({ pieces }: { pieces: PieceInput[] }) {
                 {s.words.map((w) => (
                   <li key={w}>
                     <button
-                      onClick={() => copy(w)}
-                      title="Copy"
+                      onClick={() => arrange(w)}
+                      title="Arrange the board for this word"
+                      aria-pressed={selected === w}
                       className={cn(
                         'word rounded-md border px-2 py-1 font-mono text-sm transition-colors hover:bg-accent',
-                        copied === w && 'border-emerald-500 text-emerald-400',
+                        selected === w && 'border-emerald-500 bg-emerald-500/15 text-emerald-300',
                       )}
                     >
-                      {copied === w ? 'copied' : w}
+                      {w}
                     </button>
                   </li>
                 ))}

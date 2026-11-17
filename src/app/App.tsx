@@ -11,6 +11,8 @@ import { useAppSelector } from './store'
 
 export default function App() {
   const { width, height, pieces } = useAppSelector((state) => state.grid)
+  // Positions don't affect which words exist, so only re-solve when the set of pieces changes.
+  const piecesKey = pieces.map((x) => `${x.matrix.flat().join('')}:${x.width}x${x.height}`).sort().join(' ')
   const solverPieces = React.useMemo(
     () =>
       pieces.map((x) => ({
@@ -18,7 +20,8 @@ export default function App() {
         height: x.height,
         width: x.width,
       })),
-    [pieces],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [piecesKey],
   )
 
   return (

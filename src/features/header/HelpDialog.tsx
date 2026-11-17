@@ -1,4 +1,4 @@
-import { CircleHelp, Copy, Hand, Keyboard, MousePointerClick, RotateCcw, X } from 'lucide-react'
+import { CircleHelp, Copy, Hand, Keyboard, MousePointerClick, RotateCcw, Sparkles, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -33,7 +33,12 @@ const STEPS = [
     title: 'Browse words',
     body: 'Words update as you edit the board, longest first. Filter by text or first letter, or switch to A–Z.',
   },
-  { icon: Copy, title: 'Copy a word', body: 'Click any word to copy it.' },
+  {
+    icon: Sparkles,
+    title: 'See a word on the board',
+    body: 'Click a word and the board rearranges to spell it. Any valid word on the board glows green.',
+  },
+  { icon: Copy, title: 'Copy a word', body: 'After clicking a word, use Copy in the banner above the list.' },
 ]
 
 export function HelpDialog({ defaultOpen }: { defaultOpen?: boolean }) {

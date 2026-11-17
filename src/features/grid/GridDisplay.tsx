@@ -7,10 +7,37 @@ import { useAppDispatch, useAppSelector } from '../../app/store'
 import { GridDragLayer } from './GridDragLayer'
 import { cn } from '@/lib/utils'
 import { X } from 'lucide-react'
+import { boardRuns } from '@/lib/arrange'
+import { useWordSolver } from '@/components/WordSolver'
 
-const HoverContext = React.createContext<{ hovered?: string; setHovered: (id?: string) => void }>({
+const HoverContext = React.createContext<{ hovered?: string; setHovered: (id?: string) => void; glowing: Set<string> }>({
   setHovered: () => {},
+  glowing: new Set(),
 })
+
+/** Cells ("x,y") that belong to a run of 3+ letters forming a dictionary word. */
+function useGlowingCells() {
+  const grid = useAppSelector((s) => s.grid.grid)
+  const solver = useWordSolver()
+  const [glowing, setGlowing] = React.useState<Set<string>>(new Set())
+  React.useEffect(() => {
+    if (!solver.ready) return
+    const runs = boardRuns(grid).filter((r) => r.word.length >= 3)
+    let live = true
+    solver
+      .checkWords(runs.map((r) => r.word))
+      .then((ok) => {
+        if (!live) return
+        setGlowing(new Set(runs.flatMap((r, i) => (ok[i] ? r.cells.map((c) => `${c.x},${c.y}`) : []))))
+      })
+      .catch(() => {})
+    return () => {
+      live = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [grid, solver.ready, solver.dictionary])
+  return glowing
+}
 
 export { GAP } from './constants'
 import { GAP } from './constants'
@@ -65,7 +92,7 @@ function Cell({ x, y, size }: { x: number; y: number; size: number }) {
   }, [preview])
   drag(drop(ref))
 
-  const { hovered, setHovered } = React.useContext(HoverContext)
+  const { hovered, setHovered, glowing } = React.useContext(HoverContext)
   const remove = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -79,7 +106,7 @@ function Cell({ x, y, size }: { x: number; y: number; size: number }) {
     <div
       ref={ref}
       data-cell={`${y}-${x}`}
-      className={cn(piece ? 'wb-tile' : 'wb-slot', 'relative')}
+      className={cn(piece ? 'wb-tile' : 'wb-slot', 'relative', piece && glowing.has(`${x},${y}`) && 'wb-glow')}
       data-join={piece ? joinFor(piece, x, y) : undefined}
       title={piece ? 'Drag to move · double-click to remove' : undefined}
       onContextMenu={remove}
@@ -121,7 +148,8 @@ function Cell({ x, y, size }: { x: number; y: number; size: number }) {
 /** Board that scales its cells to fit the containing element. */
 export function GridDisplay({ height, width }: { height: number; width: number }) {
   const [hovered, setHovered] = React.useState<string>()
-  const hover = React.useMemo(() => ({ hovered, setHovered }), [hovered])
+  const glowing = useGlowingCells()
+  const hover = React.useMemo(() => ({ hovered, setHovered, glowing }), [hovered, glowing])
   const empty = useAppSelector((s) => s.grid.pieces.length === 0)
   const containerRef = React.useRef<HTMLDivElement>(null)
   const [box, setBox] = React.useState({ w: 600, h: 600 })

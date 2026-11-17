@@ -11,6 +11,8 @@ export interface WordSolverType {
   /** Returns a request id (usable with `terminate`) and the pending result. */
   solve: (pieces: PieceInput[]) => [string, Promise<SolvedWord[]>]
   setBoardSize: (width: number, height: number) => Promise<void>
+  /** Dictionary lookup for each word. */
+  checkWords: (words: string[]) => Promise<boolean[]>
   setDictionary: (name: string) => Promise<void>
   /** Kill the worker (aborting any in-flight solve) and start a fresh one. */
   terminate: () => void
@@ -96,6 +98,7 @@ export default function WordSolver({ children }: { children: React.ReactNode }) 
         const id = crypto.randomUUID()
         return [id, call('solve', pieces, id)]
       },
+      checkWords: (words) => (words.length ? call('check_words', words) : Promise.resolve([])),
       setBoardSize: async (width, height) => {
         board.current = { width, height }
         await call('set_board_size', { width, height })
