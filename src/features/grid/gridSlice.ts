@@ -60,6 +60,17 @@ export function findFreeCell(gridState: GridState, mdv: MatrixDropValues): Cell 
     return undefined
 }
 
+/** Build a grid state from a saved board, dropping pieces that overlap or don't fit. */
+export function boardFromSaved(saved: { width: number; height: number; pieces: Omit<GridPiece, 'id'>[] }): GridState {
+    let state: GridState = {width: saved.width, height: saved.height, grid: emptyGrid(saved.width, saved.height), pieces: []}
+    for (const p of saved.pieces) {
+        if (canDropIntoCell(state, p, {cell: p.cell})) {
+            state = issuesDisplaySlice.reducer(state, issuesDisplaySlice.actions.addPiece(p))
+        }
+    }
+    return state
+}
+
 const issuesDisplaySlice = createSlice({
     name: 'grid',
     initialState,

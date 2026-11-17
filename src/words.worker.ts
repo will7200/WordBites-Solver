@@ -9,7 +9,7 @@ const post = (msg: Response) => self.postMessage(msg)
 
 let width = 8
 let height = 9
-let dictionary = 'alot'
+let dictionary = ''
 let solver: JSSolution | undefined
 const wasmReady = init()
 const index: Promise<Record<string, { words: number; bytes: number }>> = fetch(`${BASE}index.json`).then((r) => {
@@ -79,7 +79,8 @@ function solve(id: string, pieces: PieceInput[]): string[] {
   return solver.finish_solve()
 }
 
-let queue: Promise<unknown> = load(dictionary).catch((e) => post({ type: 'fatal', error: String(e?.message ?? e) }))
+// The page tells us which dictionary to load first (see WordSolver's start()).
+let queue: Promise<unknown> = Promise.resolve()
 
 self.onmessage = (e: MessageEvent<Request>) => {
   const req = e.data
@@ -92,7 +93,12 @@ self.onmessage = (e: MessageEvent<Request>) => {
           solver?.set_board_size(width, height)
           return post({ type: 'result', id: req.id, data: null })
         case 'set_filter_data':
-          await load(req.data)
+          try {
+            await load(req.data)
+          } catch (e) {
+            if (!solver) post({ type: 'fatal', error: String((e as Error)?.message ?? e) })
+            throw e
+          }
           return post({ type: 'result', id: req.id, data: null })
         case 'check_words': {
           if (!solver) throw new Error('solver not ready')

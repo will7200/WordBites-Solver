@@ -37,13 +37,22 @@ interface Pending {
 
 const createWorker = () => new Worker(new URL('../words.worker.ts', import.meta.url), { type: 'module' })
 
-export default function WordSolver({ children }: { children: React.ReactNode }) {
+const savedDictionary = () => {
+  try {
+    return localStorage.getItem('wb-dictionary') ?? 'enable1'
+  } catch {
+    return 'enable1'
+  }
+}
+
+/** Provides the solver worker. Keeps the worker's board size in sync with `width`/`height`. */
+export default function WordSolver({ children, width, height }: { children: React.ReactNode; width: number; height: number }) {
   const workerRef = React.useRef<Worker | null>(null)
   const pending = React.useRef(new Map<string, Pending>())
-  const board = React.useRef({ width: 8, height: 9 })
+  const board = React.useRef({ width, height })
   const [ready, setReady] = React.useState(false)
   const [error, setError] = React.useState<string>()
-  const [dictionary, setDictionaryState] = React.useState('alot')
+  const [dictionary, setDictionaryState] = React.useState(savedDictionary)
   const [loading, setLoading] = React.useState<Progress>()
   const [wordCount, setWordCount] = React.useState<number>()
   const dictionaryRef = React.useRef(dictionary)
@@ -102,10 +111,15 @@ export default function WordSolver({ children }: { children: React.ReactNode }) 
     // Restore non-default settings on a restarted worker; messages queue behind initial load.
     const { width, height } = board.current
     if (width !== 8 || height !== 9) worker.postMessage({ id: 'init-size', method: 'set_board_size', data: { width, height } })
-    if (dictionaryRef.current !== 'alot')
-      worker.postMessage({ id: 'init-dict', method: 'set_filter_data', data: dictionaryRef.current })
+    worker.postMessage({ id: 'init-dict', method: 'set_filter_data', data: dictionaryRef.current })
     return worker
   }, [])
+
+  React.useEffect(() => {
+    if (board.current.width === width && board.current.height === height) return
+    board.current = { width, height }
+    call('set_board_size', { width, height }).catch(() => {})
+  }, [width, height, call])
 
   React.useEffect(() => {
     const worker = start()
@@ -136,6 +150,11 @@ export default function WordSolver({ children }: { children: React.ReactNode }) 
         await call('set_filter_data', name).finally(() => setReady(true))
         dictionaryRef.current = name
         setDictionaryState(name)
+        try {
+          localStorage.setItem('wb-dictionary', name)
+        } catch {
+          /* ignore */
+        }
       },
       terminate: () => {
         workerRef.current?.terminate()

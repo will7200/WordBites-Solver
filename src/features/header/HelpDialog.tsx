@@ -1,4 +1,4 @@
-import { CircleHelp, Copy, Hand, Keyboard, MousePointerClick, RotateCcw, Sparkles, X } from 'lucide-react'
+import { CircleHelp, Copy, Hand, Keyboard, MousePointerClick, RotateCcw, Sparkles, Trophy, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -37,6 +37,11 @@ const STEPS = [
     icon: Sparkles,
     title: 'See a word on the board',
     body: 'Click a word and the board rearranges to spell it. Any valid word on the board glows green.',
+  },
+  {
+    icon: Trophy,
+    title: 'Score and practice',
+    body: 'Each word shows its points; mark words played to track your score. Practice mode deals a random board with a timer — spell words by moving tiles.',
   },
   { icon: Copy, title: 'Copy a word', body: 'After clicking a word, use Copy in the banner above the list.' },
 ]

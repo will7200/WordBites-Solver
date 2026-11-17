@@ -1,5 +1,6 @@
 import React from 'react'
-import { RotateCcw, Undo2 } from 'lucide-react'
+import { Check, Link, RotateCcw, Undo2 } from 'lucide-react'
+import { encodeBoard } from '@/lib/boardCodec'
 import { Button } from '@/components/ui/button'
 import { useAppDispatch, useAppSelector } from '@/app/store'
 import { clearBoard, GridPiece, restorePieces } from './gridSlice'
@@ -8,6 +9,14 @@ export function BoardToolbar() {
   const dispatch = useAppDispatch()
   const { pieces, width, height } = useAppSelector((s) => s.grid)
   const [undo, setUndo] = React.useState<GridPiece[]>()
+  const [shared, setShared] = React.useState(false)
+  const share = () => {
+    const url = new URL(location.href)
+    url.hash = `b=${encodeBoard({ width, height, pieces })}`
+    navigator.clipboard?.writeText(url.toString()).catch(() => {})
+    setShared(true)
+    setTimeout(() => setShared(false), 1500)
+  }
 
   // Offer undo for a few seconds after a reset, or until the board changes.
   React.useEffect(() => {
@@ -26,6 +35,9 @@ export function BoardToolbar() {
         {width}×{height} · {pieces.length} {pieces.length === 1 ? 'piece' : 'pieces'}
       </span>
       <div className="ml-auto flex items-center gap-2">
+        <Button size="sm" variant="ghost" disabled={!pieces.length} onClick={share} title="Copy a link to this board">
+          {shared ? <Check /> : <Link />} {shared ? 'Link copied' : 'Share'}
+        </Button>
         {undo ? (
           <>
             <span className="text-sm text-muted-foreground">Board cleared</span>

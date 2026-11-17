@@ -7,37 +7,19 @@ import { useAppDispatch, useAppSelector } from '../../app/store'
 import { GridDragLayer } from './GridDragLayer'
 import { cn } from '@/lib/utils'
 import { X } from 'lucide-react'
-import { boardRuns } from '@/lib/arrange'
-import { useWordSolver } from '@/components/WordSolver'
 
-const HoverContext = React.createContext<{ hovered?: string; setHovered: (id?: string) => void; glowing: Set<string> }>({
+const HoverContext = React.createContext<{
+  hovered?: string
+  setHovered: (id?: string) => void
+  glowing: Set<string>
+  locked: boolean
+}>({
   setHovered: () => {},
   glowing: new Set(),
+  locked: false,
 })
 
-/** Cells ("x,y") that belong to a run of 3+ letters forming a dictionary word. */
-function useGlowingCells() {
-  const grid = useAppSelector((s) => s.grid.grid)
-  const solver = useWordSolver()
-  const [glowing, setGlowing] = React.useState<Set<string>>(new Set())
-  React.useEffect(() => {
-    if (!solver.ready) return
-    const runs = boardRuns(grid).filter((r) => r.word.length >= 3)
-    let live = true
-    solver
-      .checkWords(runs.map((r) => r.word))
-      .then((ok) => {
-        if (!live) return
-        setGlowing(new Set(runs.flatMap((r, i) => (ok[i] ? r.cells.map((c) => `${c.x},${c.y}`) : []))))
-      })
-      .catch(() => {})
-    return () => {
-      live = false
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [grid, solver.ready, solver.dictionary])
-  return glowing
-}
+
 
 export { GAP } from './constants'
 import { GAP } from './constants'
@@ -92,14 +74,14 @@ function Cell({ x, y, size }: { x: number; y: number; size: number }) {
   }, [preview])
   drag(drop(ref))
 
-  const { hovered, setHovered, glowing } = React.useContext(HoverContext)
+  const { hovered, setHovered, glowing, locked } = React.useContext(HoverContext)
   const remove = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    if (piece) dispatch(removePiece({ id: piece.id }))
+    if (piece && !locked) dispatch(removePiece({ id: piece.id }))
   }
   // The remove button sits on the piece's top-right cell.
-  const isCorner = !!piece && x === piece.cell.x + piece.width - 1 && y === piece.cell.y
+  const isCorner = !locked && !!piece && x === piece.cell.x + piece.width - 1 && y === piece.cell.y
 
   const dims = item ? (item.id ? grid.pieces.find((p) => p.id === item.id) : item) : undefined
   return (
@@ -108,7 +90,7 @@ function Cell({ x, y, size }: { x: number; y: number; size: number }) {
       data-cell={`${y}-${x}`}
       className={cn(piece ? 'wb-tile' : 'wb-slot', 'relative', piece && glowing.has(`${x},${y}`) && 'wb-glow')}
       data-join={piece ? joinFor(piece, x, y) : undefined}
-      title={piece ? 'Drag to move · double-click to remove' : undefined}
+      title={piece ? (locked ? 'Drag to move' : 'Drag to move · double-click to remove') : undefined}
       onContextMenu={remove}
       onDoubleClick={remove}
       onMouseEnter={() => setHovered(piece?.id)}
@@ -146,10 +128,23 @@ function Cell({ x, y, size }: { x: number; y: number; size: number }) {
 }
 
 /** Board that scales its cells to fit the containing element. */
-export function GridDisplay({ height, width }: { height: number; width: number }) {
+export function GridDisplay({
+  height,
+  width,
+  glowing = new Set(),
+  locked = false,
+  emptyHint = 'Your board is empty. Type pieces on the left and press Enter, or drag them here.',
+}: {
+  height: number
+  width: number
+  /** Cells ("x,y") to highlight as part of a valid word. */
+  glowing?: Set<string>
+  /** Practice mode: pieces can be moved but not removed. */
+  locked?: boolean
+  emptyHint?: string
+}) {
   const [hovered, setHovered] = React.useState<string>()
-  const glowing = useGlowingCells()
-  const hover = React.useMemo(() => ({ hovered, setHovered, glowing }), [hovered, glowing])
+  const hover = React.useMemo(() => ({ hovered, setHovered, glowing, locked }), [hovered, glowing, locked])
   const empty = useAppSelector((s) => s.grid.pieces.length === 0)
   const containerRef = React.useRef<HTMLDivElement>(null)
   const [box, setBox] = React.useState({ w: 600, h: 600 })
@@ -171,7 +166,7 @@ export function GridDisplay({ height, width }: { height: number; width: number }
       {empty && (
         <div className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center p-6 text-center">
           <p className="max-w-xs rounded-lg bg-background/80 px-4 py-3 text-sm text-muted-foreground backdrop-blur">
-            Your board is empty. Type pieces on the left and press Enter, or drag them here.
+            {emptyHint}
           </p>
         </div>
       )}

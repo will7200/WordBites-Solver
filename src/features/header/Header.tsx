@@ -1,20 +1,33 @@
-import { Minus, Plus, Puzzle } from 'lucide-react'
+import { Gamepad2, Minus, Plus, Puzzle, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { HelpDialog } from './HelpDialog'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { useAppDispatch, useAppSelector } from '@/app/store'
 import { setGridSize } from '@/features/grid/gridSlice'
 import { useWordSolver } from '@/components/WordSolver'
 
 const DICTIONARIES = [
-  { value: 'alot', label: 'Everything (370k words)' },
   { value: 'enable1', label: 'ENABLE (173k words)' },
+  { value: 'alot', label: 'Everything (370k, many obscure)' },
   { value: 'ospd', label: "Official Scrabble Players' (79k)" },
   { value: 'popular', label: 'Popular words (25k)' },
   { value: 'unix_words', label: 'Unix dictionary (234k)' },
 ]
 
-function Stepper({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+export type Mode = 'solve' | 'practice'
+
+function Stepper({
+  label,
+  value,
+  onChange,
+  disabled,
+}: {
+  label: string
+  value: number
+  onChange: (v: number) => void
+  disabled?: boolean
+}) {
   return (
     <div className="flex items-center gap-1">
       <span className="mr-1 text-xs text-muted-foreground">{label}</span>
@@ -22,7 +35,7 @@ function Stepper({ label, value, onChange }: { label: string; value: number; onC
         variant="outline"
         size="icon-sm"
         aria-label={`Decrease ${label}`}
-        disabled={value <= 2}
+        disabled={disabled || value <= 2}
         onClick={() => onChange(value - 1)}
       >
         <Minus />
@@ -32,7 +45,7 @@ function Stepper({ label, value, onChange }: { label: string; value: number; onC
         variant="outline"
         size="icon-sm"
         aria-label={`Increase ${label}`}
-        disabled={value >= 10}
+        disabled={disabled || value >= 10}
         onClick={() => onChange(value + 1)}
       >
         <Plus />
@@ -52,7 +65,7 @@ const firstVisit = (() => {
   }
 })()
 
-export function Header() {
+export function Header({ mode, onModeChange }: { mode: Mode; onModeChange: (m: Mode) => void }) {
   const dispatch = useAppDispatch()
   const solver = useWordSolver()
   const { width, height, pieces } = useAppSelector((s) => s.grid)
@@ -60,7 +73,6 @@ export function Header() {
   const resize = (w: number, h: number) => {
     if (pieces.length && !confirm('Changing the board size clears the board. Continue?')) return
     dispatch(setGridSize({ width: w, height: h }))
-    solver.setBoardSize(w, h).catch(console.error)
   }
 
   return (
@@ -73,6 +85,20 @@ export function Header() {
           <h1 className="text-lg font-semibold tracking-tight">Word Bites Solver</h1>
           <HelpDialog defaultOpen={firstVisit} />
         </div>
+        <ToggleGroup
+          type="single"
+          variant="outline"
+          value={mode}
+          onValueChange={(v) => v && onModeChange(v as Mode)}
+          aria-label="Mode"
+        >
+          <ToggleGroupItem value="solve">
+            <Search /> Solver
+          </ToggleGroupItem>
+          <ToggleGroupItem value="practice">
+            <Gamepad2 /> Practice
+          </ToggleGroupItem>
+        </ToggleGroup>
         <div className="ml-auto flex flex-wrap items-center gap-x-5 gap-y-2">
           <Select value={solver.dictionary} onValueChange={(v) => solver.setDictionary(v).catch(console.error)}>
             <SelectTrigger className="w-64" aria-label="Dictionary">
@@ -86,8 +112,8 @@ export function Header() {
               ))}
             </SelectContent>
           </Select>
-          <Stepper label="Width" value={width} onChange={(w) => resize(w, height)} />
-          <Stepper label="Height" value={height} onChange={(h) => resize(width, h)} />
+          <Stepper label="Width" value={width} onChange={(w) => resize(w, height)} disabled={mode === 'practice'} />
+          <Stepper label="Height" value={height} onChange={(h) => resize(width, h)} disabled={mode === 'practice'} />
         </div>
       </div>
     </header>

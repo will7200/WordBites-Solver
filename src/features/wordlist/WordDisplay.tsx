@@ -1,5 +1,6 @@
 import React from 'react'
-import { Check, Copy, LayoutGrid, Loader2, Play, Search, Square } from 'lucide-react'
+import { Check, CircleCheck, Copy, LayoutGrid, Loader2, Play, Search, Square, Trophy } from 'lucide-react'
+import { formatPoints, totalPoints, wordPoints } from '@/lib/scoring'
 import { useAppDispatch, useAppSelector } from '@/app/store'
 import { restorePieces } from '@/features/grid/gridSlice'
 import { arrangeWord, boardRuns } from '@/lib/arrange'
@@ -13,7 +14,17 @@ import { useWordSolver } from '@/components/WordSolver'
 import type { PieceInput } from '@/workerProtocol'
 import { ALL, groupWords, LETTERS, SortOrder } from './groupWords'
 
-export function WordDisplay({ pieces }: { pieces: PieceInput[] }) {
+export function WordDisplay({
+  pieces,
+  hidden,
+  playedWords,
+}: {
+  pieces: PieceInput[]
+  /** Hide the list (practice round in progress) while still solving in the background. */
+  hidden?: string
+  /** Externally controlled set of played words (practice results). */
+  playedWords?: Set<string>
+}) {
   const wordSolver = useWordSolver()
   const [letter, setLetter] = React.useState<string>(ALL)
   const [sortOrder, setSortOrder] = React.useState<SortOrder>('length')
@@ -26,6 +37,17 @@ export function WordDisplay({ pieces }: { pieces: PieceInput[] }) {
   // Only show the solve bar if a solve takes long enough to notice.
   const [showBar, setShowBar] = React.useState(false)
   const [copied, setCopied] = React.useState(false)
+  // Words the user has already played in the game; reset whenever the set of pieces changes.
+  const [ownPlayed, setPlayed] = React.useState<Set<string>>(() => new Set())
+  React.useEffect(() => setPlayed(new Set()), [pieces])
+  const played = playedWords ?? ownPlayed
+  const togglePlayed = (w: string) =>
+    setPlayed((p) => {
+      const n = new Set(p)
+      if (n.has(w)) n.delete(w)
+      else n.add(w)
+      return n
+    })
   const [selected, setSelected] = React.useState<string>()
   const [arrangeError, setArrangeError] = React.useState<string>()
   const dispatch = useAppDispatch()
@@ -102,21 +124,27 @@ export function WordDisplay({ pieces }: { pieces: PieceInput[] }) {
 
   const groups = React.useMemo(() => groupWords(words, sortOrder), [words, sortOrder])
   const q = query.trim().toLowerCase()
-  const shown = React.useMemo(
+  const matches = React.useMemo(
     () => (groups[letter] ?? []).filter((w) => !q || w.includes(q)),
     [groups, letter, q],
   )
-  // In "longest first" mode, section the list by word length.
+  const shown = React.useMemo(() => matches.filter((w) => !played.has(w)), [matches, played])
+  const playedShown = React.useMemo(() => matches.filter((w) => played.has(w)), [matches, played])
+  const maxScore = React.useMemo(() => totalPoints(words), [words])
+  const playedScore = React.useMemo(() => totalPoints(played), [played])
+  // In "most points" mode, section the list by word length.
   const sections = React.useMemo(() => {
-    if (sortOrder !== 'length') return [{ title: null as string | null, words: shown }]
-    const out: { title: string; words: string[] }[] = []
-    for (const w of shown) {
-      const title = `${w.length} letters`
-      if (out.at(-1)?.title !== title) out.push({ title, words: [] })
-      out.at(-1)!.words.push(w)
-    }
+    const out: { title: string | null; words: string[]; played?: boolean }[] = []
+    if (sortOrder !== 'length') out.push({ title: null, words: shown })
+    else
+      for (const w of shown) {
+        const title = `${w.length} letters · ${formatPoints(wordPoints(w))} pts`
+        if (out.at(-1)?.title !== title) out.push({ title, words: [] })
+        out.at(-1)!.words.push(w)
+      }
+    if (playedShown.length) out.push({ title: playedWords ? 'You found' : 'Played', words: playedShown, played: true })
     return out
-  }, [shown, sortOrder])
+  }, [shown, playedShown, sortOrder])
 
   const copy = (w: string) => {
     navigator.clipboard?.writeText(w).catch(() => {})
@@ -125,6 +153,13 @@ export function WordDisplay({ pieces }: { pieces: PieceInput[] }) {
   }
 
   const busy = currId !== undefined || !wordSolver.ready
+  if (hidden)
+    return (
+      <div className="flex h-full flex-col gap-3">
+        <h2 className="text-base font-semibold">Words</h2>
+        <p className="py-8 text-center text-sm text-muted-foreground">{hidden}</p>
+      </div>
+    )
   const loading = wordSolver.loading
   const loadingLabel =
     loading?.phase === 'download'
@@ -176,6 +211,19 @@ export function WordDisplay({ pieces }: { pieces: PieceInput[] }) {
         </div>
       </div>
 
+      {words.length > 0 && (
+        <div className="flex items-center gap-2 text-sm">
+          <Trophy className="size-4 text-amber-300" />
+          <span className="tabular-nums">
+            <b>{formatPoints(playedScore)}</b>
+            <span className="text-muted-foreground"> / {formatPoints(maxScore)} pts possible</span>
+          </span>
+          {played.size > 0 && (
+            <span className="text-muted-foreground tabular-nums">· {played.size} played</span>
+          )}
+        </div>
+      )}
+
       {bar !== undefined && (
         <Progress
           value={bar}
@@ -194,13 +242,23 @@ export function WordDisplay({ pieces }: { pieces: PieceInput[] }) {
           <span>
             Showing <b className="font-mono">{selected}</b> on the board
           </span>
-          <Button size="xs" variant="ghost" className="ml-auto" onClick={() => copy(selected)}>
-            {copied ? <Check /> : <Copy />} {copied ? 'Copied' : 'Copy'}
-          </Button>
+          <span className="text-xs text-muted-foreground tabular-nums">{formatPoints(wordPoints(selected))} pts</span>
+          <div className="ml-auto flex gap-1">
+            {!playedWords && (
+              <Button size="xs" variant={played.has(selected) ? 'secondary' : 'default'} onClick={() => togglePlayed(selected)}>
+                <CircleCheck /> {played.has(selected) ? 'Played' : 'Mark played'}
+              </Button>
+            )}
+            <Button size="xs" variant="ghost" onClick={() => copy(selected)}>
+              {copied ? <Check /> : <Copy />} {copied ? 'Copied' : 'Copy'}
+            </Button>
+          </div>
         </div>
       ) : (
         words.length > 0 && (
-          <p className="text-xs text-muted-foreground">Click a word to arrange the board for it. Valid words on the board glow.</p>
+          <p className="text-xs text-muted-foreground">
+            Click a word to arrange the board for it, then mark it played. Valid words on the board glow.
+          </p>
         )
       )}
 
@@ -217,7 +275,7 @@ export function WordDisplay({ pieces }: { pieces: PieceInput[] }) {
           onValueChange={(v) => v && setSortOrder(v as SortOrder)}
           aria-label="Sort order"
         >
-          <ToggleGroupItem value="length">Longest</ToggleGroupItem>
+          <ToggleGroupItem value="length">Most points</ToggleGroupItem>
           <ToggleGroupItem value="alpha">A–Z</ToggleGroupItem>
         </ToggleGroup>
       </div>
@@ -247,11 +305,11 @@ export function WordDisplay({ pieces }: { pieces: PieceInput[] }) {
       <div className="-mr-2 min-h-0 flex-1 overflow-y-auto pr-2">
         {pieces.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">Add some pieces to see words.</p>
-        ) : shown.length === 0 && !busy ? (
+        ) : shown.length === 0 && playedShown.length === 0 && !busy ? (
           <p className="py-8 text-center text-sm text-muted-foreground">No words.</p>
         ) : (
           sections.map((s) => (
-            <section key={s.title ?? 'all'} className="mb-4">
+            <section key={s.title ?? 'all'} className={cn('mb-4', s.played && 'opacity-60')}>
               {s.title && (
                 <h3 className="sticky top-0 mb-2 flex items-center gap-2 bg-card py-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
                   {s.title} <Badge variant="secondary">{s.words.length}</Badge>
@@ -266,6 +324,7 @@ export function WordDisplay({ pieces }: { pieces: PieceInput[] }) {
                       aria-pressed={selected === w}
                       className={cn(
                         'word rounded-md border px-2 py-1 font-mono text-sm transition-colors hover:bg-accent',
+                        s.played && 'line-through decoration-muted-foreground/60',
                         selected === w && 'border-emerald-500 bg-emerald-500/15 text-emerald-300',
                       )}
                     >

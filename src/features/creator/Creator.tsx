@@ -76,7 +76,7 @@ export function Creator() {
             aria-label="Pieces to add"
             className="font-mono uppercase placeholder:normal-case"
           />
-          <Button type="submit" disabled={pieces.length === 0}>
+          <Button type="submit" className="bg-amber-300 text-amber-950 hover:bg-amber-200" disabled={pieces.length === 0}>
             <Plus /> Add
           </Button>
         </div>

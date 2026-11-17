@@ -18,6 +18,12 @@ prefix no word starts with. Notes on the approach are in [RESEARCH.md](RESEARCH.
 - Drag tiles on the board to move them. To remove one, hover it and click the red ×, or
   double-click it. **Reset board** clears everything (with undo).
 - **How it works** in the header explains the controls; it opens automatically on first visit.
+- Each word shows its GamePigeon points (3 letters = 100 … 9 letters = 2,600). Click a word,
+  then **Mark played** to track your score; played words move to the bottom.
+- **Share** copies a link to the current board; the board and dictionary are also remembered
+  between visits.
+- **Practice** mode deals a random 8×9 board with an 80-second timer. Drag tiles to spell
+  words; each new word scores once. When time runs out you see every word you missed.
 - Words update automatically, longest first. Filter by text or first letter, or switch to
   A–Z. Click a word and the board rearranges to spell it; any valid word on the board glows.
 
