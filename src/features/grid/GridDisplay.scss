@@ -1,5 +1,7 @@
-@import "../../styles/variables.scss";
-@import "../../styles/mixins.scss";
+@use "sass:color";
+@use "sass:math";
+@use "../../styles/variables" as *;
+@use "../../styles/mixins" as *;
 
 .gridCell {
   background: red;
@@ -16,8 +18,8 @@
 }
 
 @mixin tileP($size) {
-  $thin: ($size * 0.5/19);
-  $small: ($size * 0.75/19);
+  $thin: math.div($size * 0.5, 19);
+  $small: math.div($size * 0.75, 19);
   $med: $small * 1.5;
   cursor: move;
   position: relative;
@@ -64,7 +66,7 @@
   $tiles-mod: 0, 1, 2, 3, 4;
   @each $tile-mod in $tiles-mod {
     .empty-tile[data-mod="#{$tile-mod}"] {
-      background: adjust_hue(#487FA6, $tile-mod * 5);
+      background: color.adjust(#487FA6, $hue: $tile-mod * 5 * 1deg);
       border: 1.5px dashed white;
       position: relative;
       display: flex;
@@ -74,25 +76,25 @@
   @include respond-between(zero, xs) {
     font-size: 125%;
     .tile {
-      @include tileP(1.25mm / 2 * 19);
+      @include tileP(math.div(1.25mm, 2) * 19);
     }
   }
   @include respond-between(xs, md) {
     font-size: 150%;
     .tile {
-      @include tileP(1.50mm / 2 * 19);
+      @include tileP(math.div(1.50mm, 2) * 19);
     }
   }
   @include respond-between(md, lg) {
     font-size: 175%;
     .tile {
-      @include tileP(2mm / 2 * 19);
+      @include tileP(math.div(2mm, 2) * 19);
     }
   }
   @include respond-above(lg) {
     font-size: 200%;
     .tile {
-      @include tileP(2.5mm / 2 * 19);
+      @include tileP(math.div(2.5mm, 2) * 19);
     }
   }
 }

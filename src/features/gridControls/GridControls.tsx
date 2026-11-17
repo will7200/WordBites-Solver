@@ -1,61 +1,66 @@
-import React, { ChangeEvent } from 'react';
-import clsx from 'clsx';
-import { setGridSize } from '../grid/gridSlice';
-import { useDispatch, useSelector } from "react-redux";
-import { RootState } from "../../app/rootReducer";
-import { useWordSolver } from "../../components/WordSolver";
-import Dropdown, { Option } from 'react-dropdown';
-import 'react-dropdown/style.css';
+import React from 'react'
+import clsx from 'clsx'
+import { setGridSize } from '../grid/gridSlice'
+import { useAppDispatch, useAppSelector } from '../../app/store'
+import { useWordSolver } from '../../components/WordSolver'
 
 const options = [
-    {value: 'ospd', label: 'Official Scrabble Player\'s Dictionary'},
-    {value: 'unix_words', label: 'Unix Dictionary'},
-    {value: 'popular', label: 'Popular Words'},
-    {value: 'enable1', label: 'Verbose Official Scrabble Player\'s Dictionary'},
-    {value: 'alot', label: 'Alot of words (470000)'}
+  { value: 'ospd', label: "Official Scrabble Player's Dictionary" },
+  { value: 'unix_words', label: 'Unix Dictionary' },
+  { value: 'popular', label: 'Popular Words' },
+  { value: 'enable1', label: "Verbose Official Scrabble Player's Dictionary" },
+  { value: 'alot', label: 'A lot of words (470,000)' },
 ]
 
 export default function GridControls() {
-    const dispatch = useDispatch();
-    const wordSolver = useWordSolver();
-    const {grid} = useSelector(
-        (state: RootState) => state
-    )
+  const dispatch = useAppDispatch()
+  const wordSolver = useWordSolver()
+  const { width, height } = useAppSelector((state) => state.grid)
 
-    const setValues = (kind: 'width' | 'height') => (event: ChangeEvent<HTMLInputElement>) => {
-        let {width, height} = grid;
-        if (kind === 'width') {
-            width = parseInt(event.target.value)
-        } else if (kind === 'height') {
-            height = parseInt(event.target.value)
-        }
-        dispatch(setGridSize({width, height}))
-        wordSolver.set_board_size(width, height).catch(e => {
-            console.log(e)
-        })
-    }
+  const setSize = (w: number, h: number) => {
+    dispatch(setGridSize({ width: w, height: h }))
+    wordSolver.setBoardSize(w, h).catch(console.error)
+  }
 
-    const onDropDownChange = (val: Option) => {
-        wordSolver.set_filter_data(val.value)
-    }
-    const {width, height} = grid;
-    return (
-        <div className={clsx('grid-controls')}>
-            <div className={clsx('col')} style={{maxHeight: '100%'}}>
-                <div className={clsx('creator-inputs')}>
-                    <label htmlFor="fwidth">Width: {width}</label>
-                    <input type="range" id="fwidth" name="Width" placeholder="Width" onChange={setValues('width')}
-                           defaultValue={width} min={1} max={10}/>
-                    <label htmlFor="fheight">Height: {height}</label>
-                    <input type="range" id="fheight" name="Height" placeholder="Height" onChange={setValues('height')}
-                           defaultValue={height} min={1} max={10}/>
-                </div>
-                <div className={clsx('creator-inputs')}>
-                    <label htmlFor="dropdown_dictionary">Dictionary</label>
-                    <Dropdown id="dropdown_dictionary" options={options} onChange={onDropDownChange} value={wordSolver.dictionary}
-                              placeholder="Select an option"/>
-                </div>
-            </div>
+  return (
+    <div className={clsx('grid-controls')}>
+      <div className={clsx('col')} style={{ maxHeight: '100%' }}>
+        <div className={clsx('creator-inputs')}>
+          <label htmlFor="fwidth">Width: {width}</label>
+          <input
+            type="range"
+            id="fwidth"
+            value={width}
+            min={1}
+            max={10}
+            onChange={(e) => setSize(parseInt(e.target.value), height)}
+          />
+          <label htmlFor="fheight">Height: {height}</label>
+          <input
+            type="range"
+            id="fheight"
+            value={height}
+            min={1}
+            max={10}
+            onChange={(e) => setSize(width, parseInt(e.target.value))}
+          />
         </div>
-    )
+        <div className={clsx('creator-inputs')}>
+          <label htmlFor="dictionary">Dictionary</label>
+          <select
+            id="dictionary"
+            className="dictionary-select"
+            value={wordSolver.dictionary}
+            onChange={(e) => wordSolver.setDictionary(e.target.value).catch(console.error)}
+          >
+            {options.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+    </div>
+  )
 }

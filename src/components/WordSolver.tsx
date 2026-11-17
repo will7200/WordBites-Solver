@@ -1,152 +1,124 @@
-import React from "react";
-import { nanoid } from "../nanoid";
+import React from 'react'
+import type { PieceInput, Request, Response, SolvedWord } from '../workerProtocol'
 
-interface WordSolverType {
-    solve: (pieces: Array<any>) => [string, Promise<Array<{ word: string }>>];
-    set_board_size: (width: number, height: number) => Promise<any>;
-    // State is maintained in the provider
-    set_filter_data: (type: string) => void;
-    // Given an ID reject promise if present
-    terminate: (id?: string) => void;
-    dictionary: string;
+type Method = Request['method']
+type DataOf<M extends Method> = Extract<Request, { method: M }>['data']
+
+export interface WordSolverType {
+  ready: boolean
+  error?: string
+  dictionary: string
+  /** Returns a request id (usable with `terminate`) and the pending result. */
+  solve: (pieces: PieceInput[]) => [string, Promise<SolvedWord[]>]
+  setBoardSize: (width: number, height: number) => Promise<void>
+  setDictionary: (name: string) => Promise<void>
+  /** Kill the worker (aborting any in-flight solve) and start a fresh one. */
+  terminate: () => void
 }
 
-export const WordSolverContext = new React.createContext<WordSolverType>(undefined);
+export const WordSolverContext = React.createContext<WordSolverType | null>(null)
 
-const resolves: Record<string, any> = {}
-const rejects: Record<string, any> = {}
+interface Pending {
+  resolve: (v: any) => void
+  reject: (e: Error) => void
+}
 
-export default class WordSolver extends React.Component<any, any> {
-    worker: Worker | null = null;
-    ready = false;
-    state = {
-        dictionary: 'alot',
-    };
+const createWorker = () => new Worker(new URL('../words.worker.ts', import.meta.url), { type: 'module' })
 
-    componentDidMount() {
-        this.worker = new Worker('../words.worker.js');
-        this.worker.onmessage = this.handleMessage;
-    }
+export default function WordSolver({ children }: { children: React.ReactNode }) {
+  const workerRef = React.useRef<Worker | null>(null)
+  const pending = React.useRef(new Map<string, Pending>())
+  const board = React.useRef({ width: 8, height: 9 })
+  const [ready, setReady] = React.useState(false)
+  const [error, setError] = React.useState<string>()
+  const [dictionary, setDictionaryState] = React.useState('alot')
+  const dictionaryRef = React.useRef(dictionary)
 
-    handleMessage = (m: any) => {
-        const {id, data, type, error, message} = m.data;
-        if (id) {
-            if (data) {
-                const resolve = resolves[id]
-                if (resolve) {
-                    resolve(data)
-                }
-            } else {
-                // error condition
-                const reject = rejects[id]
-                if (reject) {
-                    if (error) {
-                        reject(error)
-                    } else {
-                        reject('Got nothing')
-                    }
-                }
-            }
-            // purge used callbacks
-            delete resolves[id]
-            delete rejects[id]
+  const rejectAll = (reason: string) => {
+    pending.current.forEach((p) => p.reject(new Error(reason)))
+    pending.current.clear()
+  }
+
+  const call = React.useCallback(<M extends Method>(method: M, data: DataOf<M>, id: string = crypto.randomUUID()) => {
+    return new Promise<any>((resolve, reject) => {
+      const worker = workerRef.current
+      if (!worker) return reject(new Error('worker not started'))
+      pending.current.set(id, { resolve, reject })
+      worker.postMessage({ id, method, data } as Request)
+    })
+  }, [])
+
+  const start = React.useCallback(() => {
+    const worker = createWorker()
+    workerRef.current = worker
+    setReady(false)
+    worker.onmessage = (e: MessageEvent<Response>) => {
+      const msg = e.data
+      switch (msg.type) {
+        case 'ready':
+          setReady(true)
+          setError(undefined)
+          return
+        case 'fatal':
+          setError(msg.error)
+          return
+        case 'result':
+        case 'error': {
+          const p = pending.current.get(msg.id)
+          pending.current.delete(msg.id)
+          if (msg.type === 'result') p?.resolve(msg.data)
+          else p?.reject(new Error(msg.error))
         }
-        if (type === 'announcment') {
-            if (message === 'ready') {
-                this.ready = true
-            }
-        }
+      }
     }
+    // Restore non-default settings on a restarted worker; messages queue behind initial load.
+    const { width, height } = board.current
+    if (width !== 8 || height !== 9) worker.postMessage({ id: 'init-size', method: 'set_board_size', data: { width, height } })
+    if (dictionaryRef.current !== 'alot')
+      worker.postMessage({ id: 'init-dict', method: 'set_filter_data', data: dictionaryRef.current })
+    return worker
+  }, [])
 
-    check = () => {
-        return this.ready && this.worker !== null
+  React.useEffect(() => {
+    const worker = start()
+    return () => {
+      worker.terminate()
+      rejectAll('worker terminated')
     }
+  }, [start])
 
-    solve = (pieces: Array<any>) => {
-        const id = nanoid()
-        return [id, new Promise((resolve, reject) => {
-            if (!this.check()) {
-                setTimeout(() => reject("worker not ready"), 100)
-            }
-            resolves[id] = resolve
-            rejects[id] = reject
-            this.worker!.postMessage([id, 'solve', pieces])
-        })]
-    }
+  const value = React.useMemo<WordSolverType>(
+    () => ({
+      ready,
+      error,
+      dictionary,
+      solve: (pieces) => {
+        const id = crypto.randomUUID()
+        return [id, call('solve', pieces, id)]
+      },
+      setBoardSize: async (width, height) => {
+        board.current = { width, height }
+        await call('set_board_size', { width, height })
+      },
+      setDictionary: async (name) => {
+        await call('set_filter_data', name)
+        dictionaryRef.current = name
+        setDictionaryState(name)
+      },
+      terminate: () => {
+        workerRef.current?.terminate()
+        rejectAll('worker terminated')
+        start()
+      },
+    }),
+    [ready, error, dictionary, call, start],
+  )
 
-    terminate = (id: string) => {
-        console.log('closing', id)
-        const reject = rejects[id]
-        if (reject) {
-            reject('worker terminated')
-            // purge used callbacks
-            delete resolves[id]
-            delete rejects[id]
-        }
-        if (this.worker) {
-            this.worker.terminate();
-            this.ready = false;
-        }
-        this.worker = new Worker('../words.worker.js');
-        this.worker.onmessage = this.handleMessage;
-    }
-
-    set_board_size = (width: number, height: number) => {
-        return new Promise((resolve, reject) => {
-            const id = nanoid()
-            if (!this.check()) {
-                setTimeout(() => reject("worker not ready"), 100)
-            }
-            this.ready = false;
-            resolves[id] = resolve
-            rejects[id] = reject
-            this.worker!.postMessage([id, 'set_board_size', {width, height}])
-        })
-    }
-
-    set_filter_data = (type: string) => {
-        new Promise((resolve, reject) => {
-            const id = nanoid()
-            if (!this.check()) {
-                setTimeout(() => reject("worker not ready"), 100)
-            }
-            this.ready = false;
-            resolves[id] = resolve
-            rejects[id] = reject
-            this.worker!.postMessage([id, 'set_filter_data', type])
-        }).then(r => {
-            this.setState({dictionary: type})
-            this.ready = true;
-        }).catch(e => {
-            console.log(e)
-        })
-    }
-
-    render() {
-        const context = {
-            solve: this.solve,
-            terminate: this.terminate,
-            set_board_size: this.set_board_size,
-            dictionary: this.state.dictionary,
-            set_filter_data: this.set_filter_data,
-        };
-        return (
-            <WordSolverContext.Provider value={context}>
-                {this.props.children}
-            </WordSolverContext.Provider>
-        )
-    }
+  return <WordSolverContext.Provider value={value}>{children}</WordSolverContext.Provider>
 }
 
 export const useWordSolver = (): WordSolverType => {
-    return React.useContext(WordSolverContext)
-};
-
-export const withWordSolver = (Component) => {
-    function WrappedComponent(props) {
-        const wordSolver = useWordSolver();
-        return <Component wordSolver={wordSolver} {...props}/>
-    }
-
-    return WrappedComponent
-};
+  const ctx = React.useContext(WordSolverContext)
+  if (!ctx) throw new Error('useWordSolver must be used inside <WordSolver>')
+  return ctx
+}

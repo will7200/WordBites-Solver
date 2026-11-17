@@ -1,8 +1,6 @@
 import React from 'react';
 import './App.css';
-import { useSelector } from 'react-redux'
-
-import { RootState } from './rootReducer'
+import { useAppSelector } from './store'
 import { GridDisplay } from "../features/grid/GridDisplay";
 import clsx from "clsx";
 import { Creator } from "../features/creator/Creator";
@@ -14,7 +12,12 @@ import GridControls from '../features/gridControls/GridControls';
 
 function App() {
     const dimensions = useDimensions();
-    const {width, height, pieces} = useSelector((state: RootState) => state.grid)
+    const {width, height, pieces} = useAppSelector((state) => state.grid)
+    const solverPieces = React.useMemo(() => pieces.map(x => ({
+        letters: x.matrix.flat().join("").toLowerCase(),
+        height: x.height,
+        width: x.width
+    })), [pieces])
     const size = Math.min(Math.round(Math.min(dimensions.width * .7 / width, dimensions.height * .7 / height)), 100)
     return (
         <WordSolver>
@@ -46,11 +49,7 @@ function App() {
                     <Creator/>
                 </section>
                 <section className={clsx('words-section')}>
-                    <WordDisplay pieces={pieces.map(x => ({
-                        letters: x.matrix.flat().join("").toLowerCase(),
-                        height: x.height,
-                        width: x.width
-                    }))}/>
+                    <WordDisplay pieces={solverPieces}/>
                 </section>
             </div>
         </WordSolver>

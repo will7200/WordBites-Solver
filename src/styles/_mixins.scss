@@ -1,11 +1,14 @@
+@use "sass:map";
+@use "variables" as *;
+
 // Respond above.
 @mixin respond-above($breakpoint) {
 
   // If the breakpoint exists in the map.
-  @if map-has-key($breakpoints, $breakpoint) {
+  @if map.has-key($breakpoints, $breakpoint) {
 
     // Get the breakpoint value.
-    $breakpoint-value: map-get($breakpoints, $breakpoint);
+    $breakpoint-value: map.get($breakpoints, $breakpoint);
 
     // Write the media query.
     @media (min-width: $breakpoint-value) {
@@ -24,11 +27,11 @@
 @mixin respond-between($breakpoint1, $breakpoint2) {
 
   // If the breakpoint exists in the map.
-  @if map-has-key($breakpoints, $breakpoint1) and map-has-key($breakpoints, $breakpoint2){
+  @if map.has-key($breakpoints, $breakpoint1) and map.has-key($breakpoints, $breakpoint2){
 
     // Get the breakpoint value.
-    $breakpoint-value1: map-get($breakpoints, $breakpoint1);
-    $breakpoint-value2: map-get($breakpoints, $breakpoint2);
+    $breakpoint-value1: map.get($breakpoints, $breakpoint1);
+    $breakpoint-value2: map.get($breakpoints, $breakpoint2);
 
     // Write the media query.
     @media (min-width: $breakpoint-value1) and (max-width: $breakpoint-value2) {

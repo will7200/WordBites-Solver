@@ -81,13 +81,17 @@ h2 {
     }
 
     .words-section {
-        height: 25vh;
-        max-height: 25vh;
+        height: 40vh;
+        min-height: 25vh;
+        width: 100%;
+        resize: vertical;
+        overflow: hidden;
     }
 }
 
-.Dropdown-root {
-    position: relative;
+.dictionary-select {
     flex: 1;
     margin: 8px;
+    padding: 6px;
+    font-size: 1rem;
 }

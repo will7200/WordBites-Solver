@@ -1,77 +1,42 @@
-import React from 'react';
-import { useDragLayer, XYCoord } from "react-dnd";
-import ItemTypes from "../board/ItemTypes";
-import TilePreview from './TilePreview';
-import { useSelector } from "react-redux";
-import { RootState } from "../../app/rootReducer";
+import React from 'react'
+import { useDragLayer, XYCoord } from 'react-dnd'
+import ItemTypes, { MatrixDropValues } from '../board/ItemTypes'
+import TilePreview from './TilePreview'
+import { useAppSelector } from '../../app/store'
 
 const layerStyles: React.CSSProperties = {
-    position: 'fixed',
-    pointerEvents: 'none',
-    zIndex: 100,
-    left: 0,
-    top: 0,
-    width: '100%',
-    height: '100%',
+  position: 'fixed',
+  pointerEvents: 'none',
+  zIndex: 100,
+  left: 0,
+  top: 0,
+  width: '100%',
+  height: '100%',
 }
 
-function getItemStyles(
-    initialOffset: XYCoord | null,
-    currentOffset: XYCoord | null,
-) {
-    if (!initialOffset || !currentOffset) {
-        return {
-            display: 'none',
-        }
-    }
-
-    let { x, y } = currentOffset
-
-    const transform = `translate(${x}px, ${y}px)`
-    return {
-        transform,
-        WebkitTransform: transform,
-    }
+function getItemStyles(initialOffset: XYCoord | null, currentOffset: XYCoord | null): React.CSSProperties {
+  if (!initialOffset || !currentOffset) return { display: 'none' }
+  const transform = `translate(${currentOffset.x}px, ${currentOffset.y}px)`
+  return { transform, WebkitTransform: transform }
 }
 
-export function GridDragLayer({width}) {
-    const {
-        itemType,
-        isDragging,
-        item,
-        initialOffset,
-        currentOffset,
-    } = useDragLayer((monitor) => ({
-        item: monitor.getItem(),
-        itemType: monitor.getItemType(),
-        initialOffset: monitor.getInitialSourceClientOffset(),
-        currentOffset: monitor.getSourceClientOffset(),
-        isDragging: monitor.isDragging(),
-    }))
-    const {grid} = useSelector(
-        (state: RootState) => state
-    )
+export function GridDragLayer({ width }: { width: number }) {
+  const { itemType, isDragging, item, initialOffset, currentOffset } = useDragLayer((monitor) => ({
+    item: monitor.getItem<MatrixDropValues>(),
+    itemType: monitor.getItemType(),
+    initialOffset: monitor.getInitialSourceClientOffset(),
+    currentOffset: monitor.getSourceClientOffset(),
+    isDragging: monitor.isDragging(),
+  }))
+  const pieces = useAppSelector((state) => state.grid.pieces)
 
-    function renderItem() {
-        switch (itemType) {
-            case ItemTypes.MATRIX:
-                let stateItem = grid.pieces.find(x => x.id === item.id)
-                if (!stateItem) {
-                    stateItem = item;
-                }
-                return <TilePreview {...stateItem} tileWidth={width}/>
-            default:
-                return null
-        }
-    }
-
-    return (
-        <div style={layerStyles}>
-            <div
-                style={getItemStyles(initialOffset, currentOffset)}
-            >
-                {renderItem()}
-            </div>
-        </div>
-    )
+  if (!isDragging || itemType !== ItemTypes.MATRIX || !item) return null
+  const piece = (item.id && pieces.find((p) => p.id === item.id)) || item
+  return (
+    <div style={layerStyles}>
+      <div style={getItemStyles(initialOffset, currentOffset)}>
+        <TilePreview width={piece.width} height={piece.height} matrix={piece.matrix} tileWidth={width} />
+      </div>
+    </div>
+  )
 }

@@ -1,5 +1,36 @@
-@import "../../styles/variables.scss";
-@import "../../styles/mixins.scss";
+@use "../../styles/variables" as *;
+@use "../../styles/mixins" as *;
+
+button.icon-container,
+button.letter-root {
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+}
+
+.words-header {
+  margin: 8px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+
+  .sort-order {
+    margin-left: auto;
+    font-size: 1rem;
+    font-weight: normal;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+}
+
+.solver-error {
+  margin: 0 8px;
+  color: #ff8a80;
+}
 
 h2 {
   .time-load {
@@ -54,6 +85,7 @@ h2 {
 
   .letter-root {
     position: relative;
+    &:disabled { cursor: not-allowed; }
     display: inline-flex;
     vertical-align: middle;
     margin: 8px;
@@ -112,6 +144,8 @@ h2 {
 }
 
 .word-list {
+  flex: 1;
+  min-height: 0;
   display: flex;
   align-content: center;
   flex-direction: column;
@@ -126,22 +160,24 @@ h2 {
   }
 
   .list {
-    display: inline-flex;
-    align-items: center;
-    flex-wrap: wrap;
-    padding: 0px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 4px 16px;
+    list-style: none;
+    padding: 0;
+    margin: 8px 0 0;
     overflow: auto;
-    margin: 0px;
 
     .word {
       display: flex;
-      min-width: 100px;
-      justify-content: center;
+      justify-content: flex-start;
+      align-items: baseline;
       font-size: 1.25rem;
 
-      &:hover {
-        text-decoration: underline;
-        cursor: pointer;
+      .word-length {
+        font-size: 0.75rem;
+        opacity: 0.5;
+        margin-left: 6px;
       }
     }
   }

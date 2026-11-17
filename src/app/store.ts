@@ -1,24 +1,12 @@
-import { configureStore, Action, getDefaultMiddleware } from '@reduxjs/toolkit'
-import { ThunkAction } from 'redux-thunk'
-// We'll use redux-logger just as an example of adding another middleware
-import logger from 'redux-logger'
+import { configureStore } from '@reduxjs/toolkit'
+import { useDispatch, useSelector } from 'react-redux'
+import rootReducer from './rootReducer'
 
-import rootReducer, { RootState } from './rootReducer'
-
-const store = configureStore({
-    reducer: rootReducer,
-    middleware: [...getDefaultMiddleware(), logger]
-})
-
-if (process.env.NODE_ENV === 'development' && module.hot) {
-    module.hot.accept('./rootReducer', () => {
-        const newRootReducer = require('./rootReducer').default
-        store.replaceReducer(newRootReducer)
-    })
-}
+const store = configureStore({ reducer: rootReducer })
 
 export type AppDispatch = typeof store.dispatch
-
-export type AppThunk = ThunkAction<void, RootState, unknown, Action<string>>
+export type RootState = ReturnType<typeof store.getState>
+export const useAppDispatch = useDispatch.withTypes<AppDispatch>()
+export const useAppSelector = useSelector.withTypes<RootState>()
 
 export default store

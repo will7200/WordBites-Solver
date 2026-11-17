@@ -1,66 +1,39 @@
 {
   "name": "word-bites-solver",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
-  "dependencies": {
-    "@reduxjs/toolkit": "^1.3.6",
-    "bloomfilter": "0.0.18",
-    "clsx": "^1.1.0",
-    "dawg-lookup": "^2.2.1",
-    "fast-deep-equal": "^3.1.1",
-    "react": "^16.13.1",
-    "react-dnd": "^10.0.2",
-    "react-dnd-html5-backend": "^10.0.2",
-    "react-dom": "^16.13.1",
-    "react-dropdown": "^1.7.0",
-    "react-redux": "^7.2.0",
-    "react-scripts": "3.4.1",
-    "redux-logger": "^3.0.6",
-    "trie-prefix-tree": "^1.5.1",
-    "typescript": "^3.7.5"
-  },
+  "type": "module",
   "scripts": {
-    "start": "react-scripts start",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "dev": "parcel public/index.html --out-dir build/debug",
-    "build": "parcel build public/index.html --out-dir build/release --public-url ./",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d build/release"
+    "wasm": "wasm-pack build solver --target web --release",
+    "dev": "npm run wasm && vite",
+    "build": "npm run wasm && tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "lint": "tsc -b --noEmit"
   },
-  "eslintConfig": {
-    "extends": "react-app"
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
+  "homepage": "https://will7200.github.io/WordBites-Solver",
+  "dependencies": {
+    "@reduxjs/toolkit": "^2.14.0",
+    "clsx": "^2.1.1",
+    "react": "^19.3.1",
+    "react-dnd": "^16.0.1",
+    "react-dnd-html5-backend": "^16.0.1",
+    "react-dom": "^19.3.1",
+    "react-redux": "^9.3.1"
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "^4.2.4",
-    "@testing-library/react": "^9.3.2",
-    "@testing-library/user-event": "^7.1.2",
-    "@types/jest": "^24.9.1",
-    "@types/node": "^12.12.38",
-    "@types/react": "^16.9.34",
-    "@types/react-dom": "^16.9.7",
-    "@types/react-redux": "^7.1.8",
-    "@types/webpack-env": "^1.15.2",
-    "parcel-bundler": "^1.12.4",
-    "parcel-plugin-static-files-copy": "^2.3.1",
-    "parcel-plugin-wasm.rs": "^1.2.15",
-    "sass": "^1.26.5"
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "jsdom": "^27.0.1",
+    "sass": "^1.108.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.0"
   },
-  "staticFiles": {
-    "staticPath": "public",
-    "watcherGlob": "**"
-  },
-  "homepage": "http://will7200.github.io/WordBites-Solver"
+  "engines": {
+    "node": ">=22.12"
+  }
 }

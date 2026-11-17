@@ -1,7 +1,6 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit'
+import { createSlice, nanoid, PayloadAction } from '@reduxjs/toolkit'
 import { MatrixDropValues } from "../board/ItemTypes";
 import { containsAnything2d, countNulls2d } from "../../utils/array";
-import { nanoid } from '../../nanoid';
 
 interface GridSliceType {
     height: number
@@ -14,16 +13,23 @@ interface Cell {
     y: number
 }
 
-type GridPiece = Omit<GridSliceType, 'grid'> &
+export type GridPiece = Omit<GridSliceType, 'grid'> &
     { cell: Cell, matrix: Array<Array<string | null>>, id: string }
-type GridState = GridSliceType & { pieces: Array<GridPiece> }
+export type GridState = GridSliceType & { pieces: Array<GridPiece> }
 
 
-let initialState: GridState = {
+const emptyGrid = (width: number, height: number) =>
+    Array.from({length: height}, () => Array<string | null>(width).fill(null))
+
+const initialState: GridState = {
     width: 8,
     height: 9,
-    grid: new Array(9).fill(new Array(8).fill(null)),
+    grid: emptyGrid(8, 9),
     pieces: new Array(0)
+}
+
+export function pieceAt(gridState: GridState, x: number, y: number): GridPiece | undefined {
+    return gridState.pieces.find(p => p.cell.x <= x && x < p.cell.x + p.width && p.cell.y <= y && y < p.cell.y + p.height)
 }
 
 export function canDropIntoCell(gridState: GridState, mdv: MatrixDropValues, dropTarget: { cell: Cell }) {
@@ -36,7 +42,10 @@ export function canDropIntoCell(gridState: GridState, mdv: MatrixDropValues, dro
     if (((dropTarget.cell.x + mdv.width) > (gridState.width)) || ((dropTarget.cell.y + mdv.height) > (gridState.height))) {
         return false
     }
-    if (containsAnything2d(gridState.grid, {...dropTarget.cell, width: mdv.width, height: mdv.height})) {
+    // When moving an existing piece, its current cells don't count as occupied.
+    const grid = mdv.id === undefined ? gridState.grid : gridState.grid.map((row, y) =>
+        row.map((v, x) => pieceAt(gridState, x, y)?.id === mdv.id ? null : v))
+    if (containsAnything2d(grid, {...dropTarget.cell, width: mdv.width, height: mdv.height})) {
         return false
     }
     return true
@@ -50,7 +59,7 @@ const issuesDisplaySlice = createSlice({
             const {width, height} = action.payload;
             state.width = width
             state.height = height
-            state.grid = new Array(height).fill(new Array(width).fill(null))
+            state.grid = emptyGrid(width, height)
             state.pieces = []
         },
         addPiece(state, action: PayloadAction<Omit<GridPiece, 'id'>>) {
@@ -84,7 +93,10 @@ const issuesDisplaySlice = createSlice({
             piece.cell = toCell;
         },
         removePiece(state, action: PayloadAction<Pick<GridPiece, 'id'>>) {
-            const piece = state.pieces.find(x => x.id === action.payload.id)!
+            const piece = state.pieces.find(x => x.id === action.payload.id)
+            if (!piece) {
+                return
+            }
             const {width, height} = piece;
             const oldCell = piece.cell;
             for (let i = oldCell.x; i < (oldCell.x + width); i++) {

@@ -11,8 +11,8 @@ export const flatten = function (arr: Array<any>, result: Array<unknown> = []) {
 };
 
 export const countNulls2d = function (arr: Array<Array<any>>): number {
-    return flatten(arr).reduce((n, val) =>
-        n + (val === null)
+    return flatten(arr).reduce((n: number, val) =>
+        n + (val === null ? 1 : 0)
         , 0) as number
 }
 

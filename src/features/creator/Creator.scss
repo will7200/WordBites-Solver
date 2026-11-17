@@ -1,4 +1,6 @@
-@import "../grid/GridDisplay";
+@use "sass:math";
+@use "../../styles/mixins" as *;
+@use "../grid/GridDisplay" as *;
 
 .creator-display {
   display: flex;
@@ -44,25 +46,25 @@
   @include respond-between(zero, xs) {
     font-size: 125%;
     .creator-cell {
-      @include tileP(1.25mm / 2 * 19);
+      @include tileP(math.div(1.25mm, 2) * 19);
     }
   }
   @include respond-between(xs, md) {
     font-size: 150%;
     .creator-cell {
-      @include tileP(1.50mm / 2 * 19);
+      @include tileP(math.div(1.50mm, 2) * 19);
     }
   }
   @include respond-between(md, lg) {
     font-size: 175%;
     .creator-cell {
-      @include tileP(2mm / 2 * 19);
+      @include tileP(math.div(2mm, 2) * 19);
     }
   }
   @include respond-above(lg) {
     font-size: 200%;
     .creator-cell {
-      @include tileP(2.5mm / 2 * 19);
+      @include tileP(math.div(2.5mm, 2) * 19);
     }
   }
 }

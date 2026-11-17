@@ -1,5 +1,4 @@
 /target
+/pkg
 **/*.rs.bk
-bin/
 wasm-pack.log
-*.dat

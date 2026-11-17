@@ -1,13 +1,18 @@
-export default {
-    CHARACTER: 'character',
-    CHARACTERS: 'characters',
-    MATRIX: 'matrix'
-}
+const ItemTypes = {
+  MATRIX: 'matrix',
+} as const
+
+export default ItemTypes
 
 export interface MatrixDropValues {
-    id?: any;
-    width: number;
-    height: number;
-    child?: boolean;
-    matrix: Array<Array<string | null>>
+  id?: string
+  width: number
+  height: number
+  child?: boolean
+  matrix: Array<Array<string | null>>
+}
+
+export interface DropResult {
+  name: string
+  cell: { x: number; y: number }
 }

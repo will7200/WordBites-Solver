@@ -1,153 +1,130 @@
-import React from 'react';
+import React from 'react'
+import clsx from 'clsx'
+import './WordDisplay.scss'
+import { useWordSolver } from '../../components/WordSolver'
+import type { PieceInput } from '../../workerProtocol'
+import Cancel from './Cancel'
+import Solve from './Solve'
+import { ALL, groupWords, LETTERS, SortOrder } from './groupWords'
 
-import './WordDisplay.scss';
-import clsx from 'clsx';
-import { useWordSolver } from "../../components/WordSolver";
-import equal from "fast-deep-equal/react"
-import Cancel from "./Cancel";
-import Solve from "./Solve";
+const formatSeconds = (ms: number) => `${(ms / 1000).toFixed(2)}s`
 
+export function WordDisplay({ pieces }: { pieces: PieceInput[] }) {
+  const wordSolver = useWordSolver()
+  const [currentLetter, setCurrentLetter] = React.useState<string>(ALL)
+  const [sortOrder, setSortOrder] = React.useState<SortOrder>('length')
+  const [words, setWords] = React.useState<string[]>([])
+  const [currId, setCurrId] = React.useState<string>()
+  const [elapsed, setElapsed] = React.useState<number>()
+  const [error, setError] = React.useState<string>()
 
-function genCharArray(charA: string, charZ: string) {
-    var a = [], i = charA.charCodeAt(0), j = charZ.charCodeAt(0);
-    for (; i <= j; ++i) {
-        a.push(String.fromCharCode(i));
+  // Pieces the user cancelled a solve for; don't auto-restart on them when the worker comes back.
+  const cancelledFor = React.useRef<PieceInput[]>(undefined)
+
+  const solve = React.useCallback((force = false) => {
+    if (!wordSolver.ready) return
+    if (!force && cancelledFor.current === pieces) return
+    cancelledFor.current = undefined
+    if (pieces.length === 0) {
+      setWords([])
+      setElapsed(undefined)
+      return
     }
-    return a;
-}
-
-const letters = genCharArray('A', 'Z');
-
-function initialState(letters: Array<any>): Record<string, any> {
-    let letObject: Record<string, any> = {}
-    letters.forEach(l => {
-        letObject[l] = {count: 0, words: []}
-    })
-    return letObject
-}
-
-function secondsToHMS(secs) {
-    function z(n) {
-        return (n < 10 ? '0' : '') + n;
+    const start = performance.now()
+    const [id, result] = wordSolver.solve(pieces)
+    setCurrId(id)
+    setError(undefined)
+    let cancelled = false
+    result
+      .then((r) => {
+        if (cancelled) return
+        setWords(r.map((w) => w.word))
+        setElapsed(performance.now() - start)
+      })
+      .catch((e: Error) => {
+        if (!cancelled && e.message !== 'worker terminated') setError(e.message)
+      })
+      .finally(() => setCurrId((c) => (c === id ? undefined : c)))
+    return () => {
+      cancelled = true
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pieces, wordSolver.ready, wordSolver.dictionary])
 
-    var sign = secs < 0 ? '-' : '';
-    secs = Math.abs(secs);
-    return sign + z(secs / 3600 | 0) + ':' + z((secs % 3600) / 60 | 0) + ':' + z(secs % 60);
-}
+  React.useEffect(() => solve(), [solve])
 
+  const groups = React.useMemo(() => groupWords(words, sortOrder), [words, sortOrder])
+  const shown = groups[currentLetter] ?? []
 
-export const WordDisplay = ({pieces}) => {
-    const [currentLetter, setCurrentLetter] = React.useState<string>('A');
-    const [loading, setLoading] = React.useState(false);
-    const [loadTime, setLoadTime] = React.useState<{ start?: Date, finish?: Date }>({
-        start: undefined,
-        finish: undefined
-    });
-    const [currId, setCurrId] = React.useState<string | undefined>(undefined);
-    const [wordState, SetWordState] = React.useState<Record<string, any>>(initialState(letters));
-    const oldPieces = React.useRef();
-    const wordList = React.useRef<string>();
-    const wordSolver = useWordSolver();
-    const solve = () => {
-        if (pieces.length === 0) {
-            return;
-        }
-        if (equal(oldPieces.current, pieces) && equal(wordList.current, wordSolver.dictionary)) {
-            return
-        }
-        const t = async () => {
-            try {
-                const rArray = wordSolver.solve(pieces)
-                let id = rArray[0]
-                let pro = rArray[1]
-                setLoading(true);
-                setCurrId(id);
-                const result = await pro;
-                let newState = initialState(letters)
-                result.forEach(o => {
-                    newState[o.word[0].toUpperCase()].count += 1;
-                    newState[o.word[0].toUpperCase()].words.push(o.word)
-                })
-                SetWordState(newState)
-                setLoadTime(l => {
-                    return {start: l.start, finish: new Date()}
-                })
-            } catch (e) {
-                if (e === 'worker not ready') {
-                    setTimeout(t, 1000)
-                } else if (e === 'empty') {
-
-                }
-            } finally {
-                setLoading(false);
-                setCurrId(undefined);
-            }
-        }
-        setLoadTime({start: new Date()})
-        t();
-        oldPieces.current = pieces;
-        wordList.current = wordSolver.dictionary;
-    }
-    React.useEffect(() => {
-        solve();
-    }, [pieces, wordSolver.dictionary]);
-
-    const handleLetterClick = (letter: string) => {
-        if (wordState[letter].count === 0) {
-            return
-        }
-        setCurrentLetter(letter);
-    }
-
-    const handleWorkClick = (event: React.SyntheticEvent<HTMLLIElement>) => {
-        const index = parseInt(event.target.getAttribute("data-index"))
-        console.log(wordState[currentLetter].words[index])
-    }
-    return (
-        <>
-            <h2 style={{margin: '8px', display: 'flex'}}>Words <span className={"time-load"}
-                                                                     style={{display: loading || loadTime.finish === undefined ? 'none' : ''}}>{secondsToHMS((loadTime?.finish - loadTime?.start) / 1000)}</span>
-                <div className={"lds-hourglass"} style={{display: loading ? '' : 'none'}}/>
-                <div className={clsx("icon-container", "cancel-word-solver")} style={{display: currId ? "" : 'none'}}
-                     onClick={() => {
-                         wordSolver.terminate(currId)
-                         setCurrId(undefined)
-                         oldPieces.current = undefined
-                     }}>
-                    <Cancel/>
-                </div>
-                <div className={clsx("icon-container", "solve-word-solver")} style={{display: currId ? "none" : ''}}
-                     onClick={() => {
-                         solve()
-                     }}>
-                    <Solve/>
-                </div>
-            </h2>
-            <div className={"letters"}>
-                {letters.map((letter) =>
-                    <div className={"letter-root"} key={letter} onClick={() => handleLetterClick(letter)}>
-                        <span
-                            className={clsx("letter", "ripple", wordState[letter].count === 0 && "no-results", currentLetter === letter && 'active')}>{letter}</span>
-                        {wordState[letter].count > 0 &&
-                        <span className={clsx("badge", 'badge-top-right')}>{wordState[letter].count}</span>}
-                    </div>
-                )}
-            </div>
-            <div className={"word-list"}>
-                <div className={"summary"}>
-                    Found {wordState[currentLetter]?.words.length} words that start with <span
-                    className={"letter"}>{currentLetter}</span>
-                </div>
-                <ul className={"list"}>
-                    {wordState[currentLetter]?.words.map((x, index) => (
-                        <li className={"word"} onClick={handleWorkClick} key={index} data-index={index}>
-                            {x}
-                        </li>
-                    ))}
-
-                </ul>
-            </div>
-        </>
-    )
+  return (
+    <>
+      <h2 className="words-header">
+        Words
+        {currId === undefined && elapsed !== undefined && <span className="time-load">{formatSeconds(elapsed)}</span>}
+        {(currId !== undefined || !wordSolver.ready) && <div className="lds-hourglass" title="Working…" />}
+        {currId !== undefined ? (
+          <button
+            className={clsx('icon-container', 'cancel-word-solver')}
+            title="Cancel"
+            onClick={() => {
+              cancelledFor.current = pieces
+              wordSolver.terminate()
+              setCurrId(undefined)
+            }}
+          >
+            <Cancel />
+          </button>
+        ) : (
+          <button className={clsx('icon-container', 'solve-word-solver')} title="Solve" onClick={() => solve(true)}>
+            <Solve />
+          </button>
+        )}
+        <label className="sort-order">
+          Sort
+          <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value as SortOrder)}>
+            <option value="length">Longest first</option>
+            <option value="alpha">A → Z</option>
+          </select>
+        </label>
+      </h2>
+      {(error || wordSolver.error) && <div className="solver-error">{error || wordSolver.error}</div>}
+      <div className="letters">
+        {[ALL, ...LETTERS].map((letter) => {
+          const count = groups[letter].length
+          return (
+            <button
+              className="letter-root"
+              key={letter}
+              disabled={count === 0}
+              onClick={() => setCurrentLetter(letter)}
+            >
+              <span className={clsx('letter', 'ripple', count === 0 && 'no-results', currentLetter === letter && 'active')}>
+                {letter === ALL ? 'All' : letter}
+              </span>
+              {count > 0 && <span className={clsx('badge', 'badge-top-right')}>{count}</span>}
+            </button>
+          )
+        })}
+      </div>
+      <div className="word-list">
+        <div className="summary">
+          Found {shown.length} words
+          {currentLetter !== ALL && (
+            <>
+              {' '}
+              that start with <span className="letter">{currentLetter}</span>
+            </>
+          )}
+        </div>
+        <ul className="list">
+          {shown.map((w) => (
+            <li className="word" key={w}>
+              {w}
+              <span className="word-length">{w.length}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </>
+  )
 }
